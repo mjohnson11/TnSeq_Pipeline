@@ -51,7 +51,7 @@ def change_well_format(w):
 def get_genotype_dataframe(seg_names):
     # gets genotype matrix, excludes alleles that are at less than 10% either allele
     print('Reading in segregant genotype data')
-    d = pd.read_csv('../TnSeq_Pipeline/accessory_files/BYxRM_GenoData.csv')
+    d = pd.read_csv('../accessory_files/BYxRM_GenoData.csv')
     map_genos = {'B': 0, 'R': 1}
     for w in d.keys():
         if change_well_format(w) in seg_names:
