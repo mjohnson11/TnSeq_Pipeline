@@ -10,7 +10,7 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
 NUM_PERMUTATIONS = 10000
-NUM_SUBSAMPLES = 10000
+NUM_SUBSAMPLES = 1000
 
 # Reading in segregant fitness information
 seg_to_fit = {i[0]: i[1] for i in pd.read_csv('../accessory_files/Clones_For_Tn96_Experiment.csv').as_matrix(['segregant', 'initial fitness, YPD 30C'])}
