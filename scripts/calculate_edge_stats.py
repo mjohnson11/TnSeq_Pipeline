@@ -8,9 +8,12 @@ from collections import defaultdict
 from statsmodels.stats.multitest import fdrcorrection as benjamini_hochberg
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
+import time
+
+otime = time.time()
 
 NUM_PERMUTATIONS = 10000
-NUM_SUBSAMPLES = 1000
+NUM_SUBSAMPLES = 100
 
 # Reading in segregant fitness information
 seg_to_fit = {i[0]: i[1] for i in pd.read_csv('../accessory_files/Clones_For_Tn96_Experiment.csv').as_matrix(['segregant', 'initial fitness, YPD 30C'])}
@@ -257,9 +260,9 @@ def analyze_determinants(seg_list, phenos, gm_df):
     model_comps = [('full', 'x'), ('full', 'qtl'), ('full_plus_seg', 'full')]
     for (m1, m2) in model_comps:
         if sd[m1 + '_model_p_values'] != 'NA' and sd[m2 + '_model_p_values'] != 'NA':
-            f_jnk, sd['model_comp_p_' + m1 + '_' + m2], df_diff_jnk = fits[m1].compare_f_test(fits[m2])
+            f_jnk, sd['model_comp_p_' + m1 + '_vs_' + m2], df_diff_jnk = fits[m1].compare_f_test(fits[m2])
         else:
-            sd['model_comp_p_' + m1 + '_' + m2] = np.nan
+            sd['model_comp_p_' + m1 + '_vs_' + m2] = np.nan
 
     sd['qtls'] = [(markers[qtl_info[0][i]], markers[qtl_info[1][i][0]], markers[qtl_info[1][i][1]]) for i in range(len(qtl_info[0]))]
     sd['resid.qtls'] = [(markers[qtl_resid_info[0][i]], markers[qtl_resid_info[1][i][0]], markers[qtl_resid_info[1][i][1]]) for i in range(len(qtl_resid_info[0]))]
@@ -313,3 +316,4 @@ def add_analysis(exp, df, output_name):
     for col in qtl_cols:
         df[col] = df['Edge'].apply(lambda edge: '|'.join([';'.join(['_'.join(q.split('_')[1:3]) for q in qtl]) for qtl in edge_stats[edge].setdefault(col, [])]))
     df.to_csv(output_name, index=False)
+    print('Time:', time.time()-otime)
