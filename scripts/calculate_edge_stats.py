@@ -13,7 +13,7 @@ import time
 otime = time.time()
 
 NUM_PERMUTATIONS = 10000
-NUM_SUBSAMPLES = 100
+NUM_SUBSAMPLES = 1
 
 # Reading in segregant fitness information
 seg_to_fit = {i[0]: i[1] for i in pd.read_csv('../accessory_files/Clones_For_Tn96_Experiment.csv').as_matrix(['segregant', 'initial fitness, YPD 30C'])}
