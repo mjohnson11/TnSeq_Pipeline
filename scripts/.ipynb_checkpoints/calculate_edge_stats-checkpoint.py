@@ -7,9 +7,12 @@ from glob import glob
 from collections import defaultdict
 from statsmodels.stats.multitest import fdrcorrection as benjamini_hochberg
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import time
+
+otime = time.time()
 
 NUM_PERMUTATIONS = 10000
-NUM_SUBSAMPLES = 10000
 
 # Reading in segregant fitness information
 seg_to_fit = {i[0]: i[1] for i in pd.read_csv('../accessory_files/Clones_For_Tn96_Experiment.csv').as_matrix(['segregant', 'initial fitness, YPD 30C'])}
@@ -33,6 +36,7 @@ chromo_lens = {
     'chr15': 1091291,
     'chr16': 948066
 }
+
 
 def change_well_format(w):
     if '_' in w:
@@ -68,32 +72,19 @@ def calculate_lods_no_weighting(genotype_matrix_centered, geno_mat_std, Ycen, Ys
     return -0.5*Ylen*np.log10(1-np.square(rscaled)), np.square(rs)
 
 
-def refitting_ols(param_names, param_values, phenotypes):
-    # ordinary least squares that iteratively excludes non-significant parameters at the 0.05 level
-    names = param_names
-    all_params = param_values
-    model_fit = sm.OLS(phenotypes, sm.add_constant(all_params)).fit()
-    sig_indices = [i for i in range(np.shape(all_params)[1]) if model_fit.pvalues[i+1] < 0.05]
-    sig_names = [names[i] for i in sig_indices]
-    sig_params = all_params[:, sig_indices]
-    while np.shape(sig_params)[1] < np.shape(all_params)[1]:
-        all_params = sig_params
-        names = sig_names
-        model_fit = sm.OLS(phenotypes, sm.add_constant(all_params)).fit()
-        sig_indices = [i for i in range(np.shape(all_params)[1]) if model_fit.pvalues[i+1] < 0.05]
-        sig_names = [names[i] for i in sig_indices]
-        sig_params = all_params[:, sig_indices]
-    return names, model_fit.rsquared, model_fit.resid, model_fit.params
-
-
-def detect_qtls(seg_names, geno_mat_df, phenotypes):
-    # Modified from Elizabeth Jerison's eLife 2017 scripts
-    # Input: list of segregant names, pandas dataframe with segregant names as columns (BY allele = 0, RM allele=1), list of phenotype values
-    geno_mat_raw = geno_mat_df.as_matrix(seg_names).T
+def center_geno_mat(g, seg_names):
+    # input pandas dataframe with segregant names as columns (BY allele = 0, RM allele=1), list of segregant names
+    geno_mat_raw = g.as_matrix(seg_names).T  # this works even when seg_names has duplicates for replicates (thanks pandas!)
     p = np.mean(geno_mat_raw, axis=0)
-    genotype_mat_centered = (geno_mat_raw - p) / np.sqrt(len(p)*p*(1-p))  # rescaled genotype values for LOD calculation
+    assert len(p) == np.shape(geno_mat_raw)[1]
+    return (geno_mat_raw - p) / np.sqrt(len(p)*p*(1-p))  # rescaled genotype values for LOD calculation
+
+
+def detect_qtls(seg_names, genotype_mat_centered, phenotypes):
+    # Modified from Elizabeth Jerison's eLife 2017 scripts
+    # Input: list of segregant names, centered genotype matrix, list of phenotype values
     # the genotype values are structured so they all have the same std dev : 1/sqrt(num loci)
-    genotype_value_std = 1/np.sqrt(len(p))
+    genotype_value_std = 1/np.sqrt(np.shape(genotype_mat_centered)[1])
     r_squared = 0
     one_qtl_r_squared = 0
     n_segs = len(phenotypes)
@@ -157,54 +148,8 @@ def detect_qtls(seg_names, geno_mat_df, phenotypes):
             intervals.append([first_consecutive_low_idx, first_consecutive_high_idx])
         else:
             all_QTLs_found = True
-    # Now fitting by ordinary least squares and dropping qtls that are not significant at the 0.05 level
-    if len(QTLs) > 0:
-        sig_indices, r_squared, residuals, coeffs = refitting_ols([i for i in range(len(QTLs))], genotype_mat_centered[:,QTLs], phenotypes)
-        QTLs = [QTLs[i] for i in sig_indices]
-        intervals = [intervals[i] for i in sig_indices]
-    if len(QTLs) > 0: 
-        # subsampling for r^2 confidence interval
-        sub_r2 = []
-        for b in range(NUM_SUBSAMPLES):
-            indices_chosen = np.random.choice([i for i in range(len(seg_names))], size=int(np.floor(len(seg_names)/2)), replace=False)
-            qtl_matrix = genotype_mat_centered[:,QTLs][indices_chosen,:]
-            sub_fit = sm.OLS(phenotypes[indices_chosen], sm.add_constant(qtl_matrix)).fit()
-            sub_r2.append(sub_fit.rsquared)
-        conf_low = np.percentile(sub_r2, 2.5)
-        conf_high = np.percentile(sub_r2, 97.5)
-    else:
-        conf_low, conf_high, r_squared = 0, 0, 0
-    return QTLs, intervals, r_squared, conf_low, conf_high, one_qtl_r_squared, residuals 
+    return QTLs, intervals
 
-
-def ols_fit_and_qtls(seg_names, geno_mat_df, phenotypes, qtl_indices, seg_fitnesses):
-    # Modified from Elizabeth Jerison's eLife 2017 scripts
-    # Input: list of segregant names, pandas dataframe with segregant names as columns (BY allele = 0, RM allele=1), list of phenotype values
-    geno_mat_raw = geno_mat_df.as_matrix(seg_names).T
-    p = np.mean(geno_mat_raw, axis=0)
-    genotype_mat_centered = (geno_mat_raw - p) / np.sqrt(len(p)*p*(1-p))  # see note on rescaled genotype values 
-    # just calculating this because its easy and keeps the lod calculation general, but all these stds are 1/sqrt(num loci) (probably should change)
-    geno_mat_stds = np.std(genotype_mat_centered, axis=0) 
-    n_segs = len(phenotypes)
-    qtl_matrix = genotype_mat_centered[:,qtl_indices]
-    all_params = np.column_stack([qtl_matrix, seg_fitnesses])
-    sig_indices, r_squared, sig_residuals, coeffs = refitting_ols([i for i in range(len(qtl_indices)+1)], all_params, phenotypes)
-    sig_qtl_indices = [qtl_indices[i] for i in sig_indices if i != len(qtl_indices)]
-    # I am always including background fitness in the full model - even if it is not significant in the ols
-    qtl_matrix = genotype_mat_centered[:,sig_qtl_indices]
-    all_params = np.column_stack([qtl_matrix, seg_fitnesses])
-    final_fit = sm.OLS(phenotypes, sm.add_constant(all_params)).fit()
-    # subsampling for r^2 confidence interval
-    sub_r2 = []
-    for b in range(NUM_SUBSAMPLES):
-        indices_chosen = np.random.choice([i for i in range(len(seg_names))], size=int(np.floor(len(seg_names)/2)), replace=False)
-        qtl_matrix = genotype_mat_centered[:,sig_qtl_indices][indices_chosen,:]
-        all_params = np.column_stack([qtl_matrix, seg_fitnesses[indices_chosen]])
-        sub_fit = sm.OLS(phenotypes[indices_chosen], sm.add_constant(all_params)).fit()
-        sub_r2.append(sub_fit.rsquared)
-    conf_low = np.percentile(sub_r2, 2.5)
-    conf_high = np.percentile(sub_r2, 97.5)
-    return final_fit.rsquared, final_fit.resid, conf_low, conf_high, sig_qtl_indices, final_fit.params
 
 def get_interval_size(interval, qtl, markers):
     i1, i2 = interval
@@ -218,6 +163,7 @@ def get_interval_size(interval, qtl, markers):
             return int(loc2)
     else:
         return int(loc2) - int(loc1)
+
 
 def qtl_dedup(qtl_infos_list, markers):
     # deduplicating qtls found before and after regressing out fitness
@@ -243,67 +189,94 @@ def qtl_dedup(qtl_infos_list, markers):
     qtls_keep += [qtls2[q] for q in range(len(qtls2)) if q not in [i[1] for i in overlapping_indices[0]]]
     qint_keep = [intervals1[q] for q in range(len(qtls1)) if q not in [i[0] for i in overlapping_indices[1]]]
     qint_keep += [intervals2[q] for q in range(len(qtls2)) if q not in [i[1] for i in overlapping_indices[0]]]
-    
+
     return qtls_keep, qint_keep
 
 
-def simple_x_regression(background_fits, fit_effects):
-    reg_result = sci_stats.linregress(background_fits, fit_effects)
-    subsamples = []
-    for b in range(NUM_SUBSAMPLES):
-        inds_chosen = np.random.choice([i for i in range(len(fit_effects))], size=int(np.floor(len(fit_effects)/2)), replace=False)
-        sub_regress = sci_stats.linregress([background_fits[i] for i in inds_chosen], [fit_effects[i] for i in inds_chosen])
-        subsamples.append(sub_regress[2]**2)
-    return reg_result, subsamples
+def fit_and_subsample(use_formula, tmp_df, num_subsamples):
+    main_fit = smf.ols(formula = use_formula, data = tmp_df).fit()
+    sub_r2 = []
+    for b in range(num_subsamples):
+        indices_chosen = np.random.choice([i for i in range(len(tmp_df))], size=int(np.floor(len(tmp_df)/2)), replace=False)
+        sub_fit = smf.ols(formula = use_formula, data = tmp_df.iloc[indices_chosen]).fit()
+        sub_r2.append(sub_fit.rsquared)
+    return main_fit, np.percentile(sub_r2, 2.5), np.percentile(sub_r2, 97.5)
 
 
-def analyze_determinants(seg_list, phenos, gm_df):
+def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
+    # In this function, I fit a series of nested models to explain fitness measurements
+    # I both fit models to the residuals from restricted models (i.e. fit a qtl model to the residuals from a background fitness model)
+    # And do F tests to compare models and restricted models.  The first is more conservative, but the p values are similar in both cases
     sd = dict()
-    x_list = np.array([seg_to_fit[seg] for seg in seg_list])
     markers = list(gm_df['marker'])
-    regress, sub_r2 = simple_x_regression(x_list, phenos)
-    sd['x.slope'] = regress[0]
-    sd['x.r2'] = regress[2]**2
-    sd['x.p.value'] = regress[3]
-    sd['x.r2.95.conf.low'] = np.percentile(sub_r2, 2.5)
-    sd['x.r2.95.conf.high'] = np.percentile(sub_r2, 97.5)
-    x_residuals = [phenos[i] - (x_list[i]*regress[0]+regress[1]) for i in range(len(phenos))]
-    # finding qtls
-    qtl_info = detect_qtls(seg_list, gm_df, np.array(phenos))
-    sd['qtls.r2'] = qtl_info[2]
+    gm_centered = center_geno_mat(gm_df, seg_list)
+    # Making a dataframe for modeling
+    df = pd.DataFrame(seg_list, columns=['segregant'])
+    df['s'] = phenos
+    df['x'] = df['segregant'].apply(lambda s: seg_to_fit[s])
+    qtl_info = detect_qtls(seg_list, gm_centered, np.array(phenos))
+    if len(qtl_info[0]) > 0:
+        df[['locus_' + markers[i] for i in qtl_info[0]]] = pd.DataFrame(gm_centered[:,qtl_info[0]], index=df.index) # adding qtls detected to the dataframe
+        qtl_model_tmp = smf.ols(formula='s ~ ' + ' + '.join(['locus_' + markers[i] for i in qtl_info[0]]), data=df).fit()
+        df['s_qtl_resids'] = qtl_model_tmp.resid
+    else:
+        df['s_qtl_resids'] = df['s']
+    # this is a bit redundant, but I'm just quickly fitting these models so I can get the residuals to use in other models
+    x_model_tmp = smf.ols(formula='s ~ x', data=df).fit()
+    df['s_x_resids'] = x_model_tmp.resid
+    # more qtl fitting
+    qtl_resid_info = detect_qtls(seg_list, gm_centered, np.array(x_model_tmp.resid))
+    dedup_qtl_info = qtl_dedup([qtl_info, qtl_resid_info], markers)
+    new_qtls = [i for i in qtl_resid_info[0] if i not in qtl_info[0]]
+    all_qtl_indices = list(set(qtl_info[0] + qtl_resid_info[0]))
+    df[['locus_' + markers[i] for i in new_qtls]] = pd.DataFrame(gm_centered[:,new_qtls], index=df.index) # adding new qtls detected to the dataframe
+    # fitting the full model (redundantly, to get residuals)
+    full_model_tmp = smf.ols(formula='s ~ ' + ' + '.join(['x'] + ['locus_' + markers[i] for i in dedup_qtl_info[0]]), data=df).fit()
+    df['s_full_resids'] = full_model_tmp.resid
+    models = {
+        'segregant': 's ~ segregant',
+        'x': 's ~ x',
+        'qtl': 's ~ ' + ' + '.join(['locus_' + markers[i] for i in qtl_info[0]]),
+        'resid_qtl': 's_x_resids ~ ' + ' + '.join(['locus_' + markers[i] for i in qtl_resid_info[0]]),
+        'resid_x': 's_qtl_resids ~ x',
+        'full': 's ~ ' + ' + '.join(['x'] + ['locus_' + markers[i] for i in dedup_qtl_info[0]]),
+        'full_plus_seg': 's ~ ' + ' + '.join(['segregant', 'x'] + ['locus_' + markers[i] for i in dedup_qtl_info[0]]),
+        'full_resid_seg': 's_full_resids ~ segregant'
+    }
+    fits = dict()
+    for model in models:
+        if models[model][-2:] == '~ ':  # no qtls found, no point fitting a model
+            sd[model + '_model_r2'], sd[model + '_model_p'], sd[model + '_model_r2_95_conf_low'], sd[model + '_model_r2_95_conf_high'] = np.nan, np.nan, np.nan, np.nan
+            sd[model + '_model_p_values'], sd[model + '_model_params'], sd[model + '_model_coeffs'] = 'NA', 'NA', 'NA'
+        else:
+            fits[model], sd[model + '_model_r2_95_conf_low'], sd[model + '_model_r2_95_conf_high'] = fit_and_subsample(models[model], df, num_subsamples)
+            sd[model + '_model_p'] = fits[model].f_pvalue
+            sd[model + '_model_r2'] = fits[model].rsquared
+            sd[model + '_model_p_values'] = ';'.join([str(i) for i in fits[model].pvalues])
+            sd[model + '_model_params'] = models[model][models[model].index('~')+2:].replace(' + ', ';')
+            sd[model + '_model_coeffs'] = ';'.join([str(i) for i in fits[model].params]) # the first parameter is the intercept
+    # model comparison using F test
+    model_comps = [('full', 'x'), ('full', 'qtl'), ('full_plus_seg', 'full')]
+    for (m1, m2) in model_comps:
+        if sd[m1 + '_model_p_values'] != 'NA' and sd[m2 + '_model_p_values'] != 'NA':
+            f_jnk, sd['model_comp_p_' + m1 + '_vs_' + m2], df_diff_jnk = fits[m1].compare_f_test(fits[m2])
+        else:
+            sd['model_comp_p_' + m1 + '_vs_' + m2] = np.nan
+
     sd['qtls'] = [(markers[qtl_info[0][i]], markers[qtl_info[1][i][0]], markers[qtl_info[1][i][1]]) for i in range(len(qtl_info[0]))]
-    sd['qtls.r2.95.conf.low'] = qtl_info[3]
-    sd['qtls.r2.95.conf.high'] = qtl_info[4]
-    sd['qtls.one.r2'] = qtl_info[5]
-    # regressing with background fitness over and above qtl effects (y values are qtl model residuals)
-    res_regress, res_sub_r2 = simple_x_regression(x_list, qtl_info[6])
-    sd['resid.x.slope'] = res_regress[0]
-    sd['resid.x.r2'] = res_regress[2]**2
-    sd['resid.x.p.value'] = res_regress[3]
-    sd['resid.x.r2.95.conf.low'] = np.percentile(res_sub_r2, 2.5)
-    sd['resid.x.r2.95.conf.high'] = np.percentile(res_sub_r2, 97.5)
-    # finding qtls over and above qtl effects
-    qtl_resid_info = detect_qtls(seg_list, gm_df, np.array(x_residuals))
-    sd['resid.qtls.r2'] = qtl_resid_info[2]
     sd['resid.qtls'] = [(markers[qtl_resid_info[0][i]], markers[qtl_resid_info[1][i][0]], markers[qtl_resid_info[1][i][1]]) for i in range(len(qtl_resid_info[0]))]
-    sd['resid.qtls.r2.95.conf.low'] = qtl_resid_info[3]
-    sd['resid.qtls.r2.95.conf.high'] = qtl_resid_info[4]
-    dedup_qtl_info = qtl_dedup([qtl_info[:2], qtl_resid_info[:2]], markers)
-    sd['dedup.qtls'] = [(markers[dedup_qtl_info[0][i]], markers[dedup_qtl_info[1][i][0]], markers[dedup_qtl_info[1][i][1]]) for i in range(len(dedup_qtl_info[0]))]
-    # fitting full model
-    r2, resid, clow, chigh, sig_qtls, coeffs = ols_fit_and_qtls(seg_list, gm_df, np.array(phenos), 
-                                                                dedup_qtl_info[0], x_list)
-    sig_qtl_tmp_indices = [i for i in range(len(dedup_qtl_info[0])) if dedup_qtl_info[0][i] in sig_qtls]
-    sd['full.model.qtls'] = [(markers[dedup_qtl_info[0][i]], markers[dedup_qtl_info[1][i][0]], markers[dedup_qtl_info[1][i][1]]) for i in sig_qtl_tmp_indices]
-    sd['full.model.r2'] = r2
-    sd['full.model.r2.95.conf.low'] = clow
-    sd['full.model.r2.95.conf.high'] = chigh
-    sd['full.model.coeffs'] = ';'.join([str(i) for i in coeffs])
+    sd['full.model.qtls'] = [(markers[dedup_qtl_info[0][i]], markers[dedup_qtl_info[1][i][0]], markers[dedup_qtl_info[1][i][1]]) for i in range(len(dedup_qtl_info[0]))]
     return sd
 
-    
-def get_stats_for_one_edge(row, segs, gm_df):
-    measured = [seg for seg in segs if row[seg + '.total.cbcs'] >= 4]
+
+def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_segs):
+    # The difference here is I am including replicate s measurements in the model instead of using the mean s
+    if use_only_two_rep_segs:  #only include segregants w s measured in both replicates
+        measured = [seg for seg in segs if row[seg + '.rep1.cbcs'] >= 2 and row[seg + '.rep2.cbcs'] >= 2]
+    else:
+        measured = [seg for seg in segs if row[seg + '.rep1.cbcs'] >= 2 or row[seg + '.rep2.cbcs'] >= 2]
+    reps = ['rep1', 'rep2']
+    measured_by_rep = {r: [seg for seg in segs if row[seg + '.' + r + '.cbcs'] >= 2] for r in reps}
     stat_dict = {'num.measured': len(measured)}
     if len(measured) >= 10:
         pvals = [row[seg + '.pval'] for seg in measured]
@@ -318,28 +291,31 @@ def get_stats_for_one_edge(row, segs, gm_df):
         # doing n/2 sub-samplings to get error on that
         sub_H2 = []
         seg_indices = [i for i in range(len(measured))]
-        for b in range(NUM_SUBSAMPLES):
+        for b in range(num_subsamples):
             segs_chosen = np.random.choice(seg_indices, size=int(np.floor(len(measured)/2)), replace=False)
             Vg = np.var([means[seg_ind] for seg_ind in segs_chosen])
             Ve = np.mean([variances[seg_ind] for seg_ind in segs_chosen])
             sub_H2.append((Vg - Ve) / Vg)
-        stat_dict['H2.95.conf.low'] = np.percentile(sub_H2, 2.5)
-        stat_dict['H2.95.conf.high'] = np.percentile(sub_H2, 97.5)
-        stat_dict.update(analyze_determinants(measured, means, gm_df))
+        stat_dict['H2_95_conf_low'] = np.percentile(sub_H2, 2.5)
+        stat_dict['H2_95_conf_high'] = np.percentile(sub_H2, 97.5)
+        rep_means = [row[seg + '.rep1.s'] for seg in measured_by_rep['rep1']] + [row[seg + '.rep2.s'] for seg in measured_by_rep['rep2']]
+        stat_dict.update(analyze_determinants(measured_by_rep['rep1']+measured_by_rep['rep2'], rep_means, gm_df, num_subsamples))
     return stat_dict
 
-def add_analysis(exp, df, output_name):
-    o_cols = ['num.measured', 'num.sig', 'x.slope', 'x.p.value', 'resid.x.slope', 'resid.x.p.value', 'full.model.coeffs', 'qtls.one.r2']
-    cols_with_conf_ints = ['H2', 'qtls.r2', 'x.r2', 'full.model.r2', 'resid.qtls.r2', 'resid.x.r2']
-    full_cols = o_cols + cols_with_conf_ints
-    for c in cols_with_conf_ints:
-        full_cols += [c + '.95.conf.low', c + '.95.conf.high']
+def add_analysis(exp, df, output_name, num_subsamples, use_only_two_rep_segs=False):
+    full_cols = ['num.measured', 'num.sig', 'H2', 'H2_95_conf_low', 'H2_95_conf_high',
+                 'model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'model_comp_p_full_plus_seg_vs_full']
+    mods = ['segregant', 'x', 'qtl', 'resid_qtl', 'resid_x', 'full', 'full_plus_seg', 'full_resid_seg']
+    suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
+    for c in mods:
+        full_cols += [c + s for s in suffixes]
     qtl_cols = ['qtls', 'resid.qtls', 'full.model.qtls']
     exp_segs = [i.split('.')[0] for i in df if '.mean.s' in i]
     geno_df = get_genotype_dataframe(exp_segs)
-    edge_stats = {r['Edge']: get_stats_for_one_edge(r, exp_segs, geno_df) for index, r in df.iterrows()}
+    edge_stats = {r['Edge']: get_stats_for_one_edge(r, exp_segs, geno_df, num_subsamples, use_only_two_rep_segs) for index, r in df.iterrows()}
     for col in full_cols:
         df[col] = df['Edge'].apply(lambda edge: edge_stats[edge].setdefault(col, np.nan))
     for col in qtl_cols:
-        df[col] = df['Edge'].apply(lambda edge: '|'.join([';'.join(['_'.join(q.split('_')[1:3]) for q in qtl]) for qtl in edge_stats[edge].setdefault(col, [])])) 
+        df[col] = df['Edge'].apply(lambda edge: '|'.join([';'.join(['_'.join(q.split('_')[1:3]) for q in qtl]) for qtl in edge_stats[edge].setdefault(col, [])]))
     df.to_csv(output_name, index=False)
+    print('Time:', time.time()-otime)

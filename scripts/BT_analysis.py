@@ -4,6 +4,8 @@ from glob import glob
 import numpy as np
 from calculate_edge_stats import add_analysis
 
+NUM_SUBSAMPLES = 1
+
 ann_info_file = '../../Mutation_Annotation/Edges_annotated.csv'
 
 # ADDING ANNOTATION INFO
@@ -24,4 +26,4 @@ for s in BT_segs:
         edge_dat[s + '.' + cols[c]] = edge_dat['Edge'].apply(lambda e: ed.setdefault(e, [np.nan for i in range(len(cols))])[c])
 
 # ADDING GENETIC DETERMINANT ANALYSIS        
-add_analysis('BT', edge_dat, '../../Analysis/BT_data_by_edge.csv')
+add_analysis('BT', edge_dat, '../../Analysis/BT_data_by_edge.csv', NUM_SUBSAMPLES)

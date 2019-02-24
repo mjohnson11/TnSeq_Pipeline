@@ -158,12 +158,12 @@ def align_and_annotate(edge_set, bowtie_path):
             if len(annotations) > 0:
                 dat_dicts[col].append('|'.join([str(i) for i in annotations[col]]))
             else:
-                dat_dicts[col].append('NA' )
+                dat_dicts[col].append('NA')
         for col in annotation_col_names:
             if len(ann_nearby) > 0:
                 dat_dicts[col + '.nearby'].append('|'.join([str(i) for i in ann_nearby[col]]))
             else:
-                dat_dicts[col + '.nearby'].append('NA' )
+                dat_dicts[col + '.nearby'].append('NA')
     return pd.DataFrame(dat_dicts)
     
 control_edges = set(['CTAAGTGTGAAGGAGTTGTCTTCTTGCGCT', 'CTGATTTGTGCTGTCTTAGGACCCTCTGAA', 'GCTGCTTATGAGGATATGGATTTAGAGCTA'])

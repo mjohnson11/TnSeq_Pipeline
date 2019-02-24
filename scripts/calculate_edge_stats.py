@@ -13,7 +13,6 @@ import time
 otime = time.time()
 
 NUM_PERMUTATIONS = 10000
-NUM_SUBSAMPLES = 1
 
 # Reading in segregant fitness information
 seg_to_fit = {i[0]: i[1] for i in pd.read_csv('../accessory_files/Clones_For_Tn96_Experiment.csv').as_matrix(['segregant', 'initial fitness, YPD 30C'])}
@@ -194,17 +193,17 @@ def qtl_dedup(qtl_infos_list, markers):
     return qtls_keep, qint_keep
 
 
-def fit_and_subsample(use_formula, tmp_df):
+def fit_and_subsample(use_formula, tmp_df, num_subsamples):
     main_fit = smf.ols(formula = use_formula, data = tmp_df).fit()
     sub_r2 = []
-    for b in range(NUM_SUBSAMPLES):
+    for b in range(num_subsamples):
         indices_chosen = np.random.choice([i for i in range(len(tmp_df))], size=int(np.floor(len(tmp_df)/2)), replace=False)
         sub_fit = smf.ols(formula = use_formula, data = tmp_df.iloc[indices_chosen]).fit()
         sub_r2.append(sub_fit.rsquared)
     return main_fit, np.percentile(sub_r2, 2.5), np.percentile(sub_r2, 97.5)
 
 
-def analyze_determinants(seg_list, phenos, gm_df):
+def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
     # In this function, I fit a series of nested models to explain fitness measurements
     # I both fit models to the residuals from restricted models (i.e. fit a qtl model to the residuals from a background fitness model)
     # And do F tests to compare models and restricted models.  The first is more conservative, but the p values are similar in both cases
@@ -250,7 +249,7 @@ def analyze_determinants(seg_list, phenos, gm_df):
             sd[model + '_model_r2'], sd[model + '_model_p'], sd[model + '_model_r2_95_conf_low'], sd[model + '_model_r2_95_conf_high'] = np.nan, np.nan, np.nan, np.nan
             sd[model + '_model_p_values'], sd[model + '_model_params'], sd[model + '_model_coeffs'] = 'NA', 'NA', 'NA'
         else:
-            fits[model], sd[model + '_model_r2_95_conf_low'], sd[model + '_model_r2_95_conf_high'] = fit_and_subsample(models[model], df)
+            fits[model], sd[model + '_model_r2_95_conf_low'], sd[model + '_model_r2_95_conf_high'] = fit_and_subsample(models[model], df, num_subsamples)
             sd[model + '_model_p'] = fits[model].f_pvalue
             sd[model + '_model_r2'] = fits[model].rsquared
             sd[model + '_model_p_values'] = ';'.join([str(i) for i in fits[model].pvalues])
@@ -270,9 +269,12 @@ def analyze_determinants(seg_list, phenos, gm_df):
     return sd
 
 
-def get_stats_for_one_edge(row, segs, gm_df):
+def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_segs):
     # The difference here is I am including replicate s measurements in the model instead of using the mean s
-    measured = [seg for seg in segs if row[seg + '.rep1.cbcs'] >= 2 or row[seg + '.rep2.cbcs'] >= 2]
+    if use_only_two_rep_segs:  #only include segregants w s measured in both replicates
+        measured = [seg for seg in segs if row[seg + '.rep1.cbcs'] >= 2 and row[seg + '.rep2.cbcs'] >= 2]
+    else:
+        measured = [seg for seg in segs if row[seg + '.rep1.cbcs'] >= 2 or row[seg + '.rep2.cbcs'] >= 2]
     reps = ['rep1', 'rep2']
     measured_by_rep = {r: [seg for seg in segs if row[seg + '.' + r + '.cbcs'] >= 2] for r in reps}
     stat_dict = {'num.measured': len(measured)}
@@ -289,7 +291,7 @@ def get_stats_for_one_edge(row, segs, gm_df):
         # doing n/2 sub-samplings to get error on that
         sub_H2 = []
         seg_indices = [i for i in range(len(measured))]
-        for b in range(NUM_SUBSAMPLES):
+        for b in range(num_subsamples):
             segs_chosen = np.random.choice(seg_indices, size=int(np.floor(len(measured)/2)), replace=False)
             Vg = np.var([means[seg_ind] for seg_ind in segs_chosen])
             Ve = np.mean([variances[seg_ind] for seg_ind in segs_chosen])
@@ -297,10 +299,10 @@ def get_stats_for_one_edge(row, segs, gm_df):
         stat_dict['H2_95_conf_low'] = np.percentile(sub_H2, 2.5)
         stat_dict['H2_95_conf_high'] = np.percentile(sub_H2, 97.5)
         rep_means = [row[seg + '.rep1.s'] for seg in measured_by_rep['rep1']] + [row[seg + '.rep2.s'] for seg in measured_by_rep['rep2']]
-        stat_dict.update(analyze_determinants(measured_by_rep['rep1']+measured_by_rep['rep2'], rep_means, gm_df))
+        stat_dict.update(analyze_determinants(measured_by_rep['rep1']+measured_by_rep['rep2'], rep_means, gm_df, num_subsamples))
     return stat_dict
 
-def add_analysis(exp, df, output_name):
+def add_analysis(exp, df, output_name, num_subsamples, use_only_two_rep_segs=False):
     full_cols = ['num.measured', 'num.sig', 'H2', 'H2_95_conf_low', 'H2_95_conf_high',
                  'model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'model_comp_p_full_plus_seg_vs_full']
     mods = ['segregant', 'x', 'qtl', 'resid_qtl', 'resid_x', 'full', 'full_plus_seg', 'full_resid_seg']
@@ -310,7 +312,7 @@ def add_analysis(exp, df, output_name):
     qtl_cols = ['qtls', 'resid.qtls', 'full.model.qtls']
     exp_segs = [i.split('.')[0] for i in df if '.mean.s' in i]
     geno_df = get_genotype_dataframe(exp_segs)
-    edge_stats = {r['Edge']: get_stats_for_one_edge(r, exp_segs, geno_df) for index, r in df.iterrows()}
+    edge_stats = {r['Edge']: get_stats_for_one_edge(r, exp_segs, geno_df, num_subsamples, use_only_two_rep_segs) for index, r in df.iterrows()}
     for col in full_cols:
         df[col] = df['Edge'].apply(lambda edge: edge_stats[edge].setdefault(col, np.nan))
     for col in qtl_cols:

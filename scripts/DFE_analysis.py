@@ -7,7 +7,7 @@ from statsmodels.stats.multitest import fdrcorrection as benjamini_hochberg
 from collections import defaultdict
 from calculate_edge_stats import analyze_determinants, get_genotype_dataframe
 
-NUM_SUBSAMPLES = 10000
+NUM_SUBSAMPLES = 1000
 
 tp_all = pd.read_csv('../../Analysis/TP_data_by_edge.csv')
 tp = tp_all.loc[tp_all['Type']=='Experiment']
@@ -68,15 +68,16 @@ for exp in exps:
         }
     rows = [[c] + [tmp_dict[s][c] for s in segs] for c in dfe_cols]
     df = pd.DataFrame(rows, columns=['DFE.statistic'] + segs)
-    o_cols = ['x.slope', 'x.p.value', 'resid.x.slope', 'resid.x.p.value', 'full.model.coeffs', 'qtls.one.r2']
-    cols_with_conf_ints = ['qtls.r2', 'x.r2', 'full.model.r2', 'resid.qtls.r2', 'resid.x.r2']
-    full_cols = o_cols + cols_with_conf_ints
-    for c in cols_with_conf_ints:
-        full_cols += [c + '.95.conf.low', c + '.95.conf.high']
+    full_cols = []
+    mods = ['segregant', 'x', 'qtl', 'resid_qtl', 'resid_x', 'full', 'full_plus_seg', 'full_resid_seg']
+    suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
+    for c in mods:
+        full_cols += [c + s for s in suffixes]
     qtl_cols = ['qtls', 'resid.qtls', 'full.model.qtls']
+    exp_segs = [i.split('.')[0] for i in df if '.mean.s' in i]
     geno_df = get_genotype_dataframe(segs)
     determinant_stats = defaultdict(dict)
-    determinant_stats.update({r['DFE.statistic']: analyze_determinants(segs, list(r[segs]), geno_df) for index, r in df.loc[df['DFE.statistic'].isin(cols_to_analyze)].iterrows()})
+    determinant_stats.update({r['DFE.statistic']: analyze_determinants(segs, list(r[segs]), geno_df, NUM_SUBSAMPLES) for index, r in df.loc[df['DFE.statistic'].isin(cols_to_analyze)].iterrows()})
     for col in full_cols:
         df[col] = df['DFE.statistic'].apply(lambda edge: determinant_stats[edge].setdefault(col, np.nan))
     for col in qtl_cols:
