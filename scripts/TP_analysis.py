@@ -36,7 +36,7 @@ td = pd.concat([edge_info[['Edge', 'Type']], pd.DataFrame(mat, columns=['Edge', 
 # ADDING ANNOTATION INFO
 ann = pd.read_csv(ann_info_file)
 ann['Edge'] = ann['Edge'].str[:15]
-ann_use = ann[['Edge.ID', 'Edge', 'Gene.Use', 'Gene', 'Gene.nearby', 'ORF', 'ORF.nearby',
+ann_use = ann[['Edge.ID', 'Edge', 'Gene.Use', 'Gene_ORF', 'Gene_ORF.nearby', 
                'briefDescription', 'briefDescription.nearby', 'chromosome',
                'description', 'description.nearby', 'end', 'end.nearby',
                'functionSummary', 'functionSummary.nearby', 'insertion_edge',
