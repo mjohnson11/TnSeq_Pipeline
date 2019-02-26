@@ -50,7 +50,7 @@ for exp in exps:
         sub_skews = [sci_stats.skew(np.random.choice(td[seg], size=int(len(td[seg])/2), replace=False)) for i in range(NUM_SUBSAMPLES)]
         sub_kurtosis = [sci_stats.kurtosis(np.random.choice(td[seg], size=int(len(td[seg])/2), replace=False)) for i in range(NUM_SUBSAMPLES)]
         tmp_dict[seg] = {
-            'background.fitness' = seg_to_fit[seg]
+            'background.fitness': seg_to_fit[seg],
             'mean': np.nanmean(td[seg]),
             'median': np.nanmedian(td[seg]),
             'variance': np.nanvar(td[seg]),
