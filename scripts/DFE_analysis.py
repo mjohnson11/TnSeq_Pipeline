@@ -16,11 +16,13 @@ bt['Long.Edge'] = bt['Edge']
 bt['Edge'] = bt['Long.Edge'].str[:15]
 dats = {'BT': bt, 'TP': tp}
 
-dfe_cols = ['mean', 'median', 'variance', 'skew', 'kurtosis', 'significant.beneficial.mutations', 'significant.deleterious.mutations',
+dfe_cols = ['background.fitness', 'mean', 'median', 'variance', 'skew', 'kurtosis', 'significant.beneficial.mutations', 'significant.deleterious.mutations',
            'mean.sub.low', 'mean.sub.high', 'median.sub.low', 'median.sub.high', 'variance.sub.low', 'variance.sub.high', 'skew.sub.low',
            'skew.sub.high', 'kurtosis.sub.low', 'kurtosis.sub.high']
 
-cols_to_analyze = ['mean', 'median', 'variance', 'skew', 'kurtosis', 'significant.beneficial.mutations', 'significant.deleterious.mutations']
+cols_to_analyze = ['background.fitness', 'mean', 'median', 'variance', 'skew', 'kurtosis', 'significant.beneficial.mutations', 'significant.deleterious.mutations']
+
+seg_to_fit = {i[0]: i[1] for i in pd.read_csv('../accessory_files/Clones_For_Tn96_Experiment.csv').as_matrix(['segregant', 'initial fitness, YPD 30C'])}
 
 dfes = defaultdict(lambda: defaultdict(dict))
 dfes_sig = defaultdict(lambda: defaultdict(dict))
@@ -48,6 +50,7 @@ for exp in exps:
         sub_skews = [sci_stats.skew(np.random.choice(td[seg], size=int(len(td[seg])/2), replace=False)) for i in range(NUM_SUBSAMPLES)]
         sub_kurtosis = [sci_stats.kurtosis(np.random.choice(td[seg], size=int(len(td[seg])/2), replace=False)) for i in range(NUM_SUBSAMPLES)]
         tmp_dict[seg] = {
+            'background.fitness' = seg_to_fit[seg]
             'mean': np.nanmean(td[seg]),
             'median': np.nanmedian(td[seg]),
             'variance': np.nanvar(td[seg]),
