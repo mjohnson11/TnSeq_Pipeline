@@ -276,7 +276,10 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
         if sd[m1 + '_model_p_values'] != 'NA' and sd[m2 + '_model_p_values'] != 'NA':
             f_jnk, sd['model_comp_p_' + m1 + '_vs_' + m2], df_diff_jnk = fits[m1].compare_f_test(fits[m2])
         else:
-            sd['model_comp_p_' + m1 + '_vs_' + m2] = np.nan
+            if m2 == 'qtl' and len(qtl_info[0]) == 0:
+                sd['model_comp_p_full_vs_qtl'] = sd['x_model_p']  # no qtls so no model comparison
+            else:
+                sd['model_comp_p_' + m1 + '_vs_' + m2] = np.nan
 
     sd['qtls'] = [(markers[qtl_info[0][i]], markers[qtl_info[1][i][0]], markers[qtl_info[1][i][1]]) for i in range(len(qtl_info[0]))]
     sd['resid.qtls'] = [(markers[qtl_resid_info[0][i]], markers[qtl_resid_info[1][i][0]], markers[qtl_resid_info[1][i][1]]) for i in range(len(qtl_resid_info[0]))]
