@@ -267,7 +267,7 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
     for i in range(len(dedup_qtl_info[0])):
         high = np.max(df['locus_' + markers[dedup_qtl_info[0][i]]])
         low = np.min(df['locus_' + markers[dedup_qtl_info[0][i]]])
-        qtl_effects.append((high-low)*sd['full_model_coeffs'][i+2])
+        qtl_effects.append((high-low)*fits['full'].params[i+2])
     sd['full_model_qtl_effect_sizes'] = ';'.join([str(ef) for ef in qtl_effects])
 
     # model comparison using F test
