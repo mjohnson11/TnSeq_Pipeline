@@ -47,7 +47,8 @@ CHROMO_DICT = {
 
 def get_gene2(row):
     # returns "in Gene" if it is in a gene
-    # returns "near Gene" if it isn't, and gene is the gene that the insertion is closest to the start of the gene
+    # returns "near Gene" if it isn't
+    # defaults to the genes with the insertion upstream of the start
     if str(row['Gene_ORF']) != 'NA':
         return 'in ' + row['Gene_ORF']
     elif str(row['Gene_ORF.nearby']) != 'NA':
@@ -64,14 +65,24 @@ def get_gene2(row):
         nearest = None
         nearest_dist = np.inf
         insertion_loc = int(row['insertion_edge'])
+        gene_to_end_dist = dict()
         for i in range(len(nearby_list)):
+            insertion_upstream = False
             if strands[i] == -1:
-                actual_start = ends[i]
+                actual_start, actual_end = ends[i], starts[i]
+                if actual_start < insertion_loc:
+                   insertion_upstream = True
             else:
-                actual_start = starts[i]
-            if np.abs(actual_start - insertion_loc) < nearest_dist:
-                nearest_dist = np.abs(actual_start - insertion_loc)
-                nearest = nearby_list[i]
+                actual_start, actual_end = starts[i], ends[i]
+                if actual_start > insertion_loc:
+                   insertion_upstream = True
+            gene_to_end_dist[nearby_list[i]] = np.abs(actual_end - insertion_loc)
+            if insertion_upstream:
+                if np.abs(actual_start - insertion_loc) < nearest_dist:
+                    nearest_dist = np.abs(actual_start - insertion_loc)
+                    nearest = nearby_list[i]
+        if not nearest: # case where the insertion is between two gene ends
+            nearest = sorted(nearby_list, key=lambda x: gene_to_end_dist[x])[0]
         return 'nearby ' + nearest
 
 def format_bowtie_row(raw_row):
@@ -170,7 +181,7 @@ control_edges = set(['CTAAGTGTGAAGGAGTTGTCTTCTTGCGCT', 'CTGATTTGTGCTGTCTTAGGACCC
 all_edges = set(pd.read_csv('../../BT_Bioinformatic_Work/BT1_output/BT_BC_Assoc/BT_BC_Assoc_filtered_clusters.csv')['Edge'])
 all_edges.update(control_edges)
 ann_edges = align_and_annotate(all_edges, '../accessory_files/bowtie_build_S288C/S288C')
-tncs = list(pd.read_csv('TnCS_Final_Rearray_Data.csv')['Edge.Bases'].str[:30])
+tncs = list(pd.read_csv('../accessory_files/TnCS_Final_Rearray_Data.csv')['Edge.Bases'].str[:30])
 ann_edges['Expected.From.TnCS'] = ann_edges['Edge'].isin(tncs)
 tp_d = pd.read_csv('../../BT_Bioinformatic_Work/TP_output/TP_BC_Assoc/TP_CS_BC_Assoc_filtered_clusters.csv')[['Edge', 'Total.Counts']].groupby('Edge', as_index=False).sum()
 tp = list(tp_d.loc[tp_d['Total.Counts'] > 50000]['Edge'])

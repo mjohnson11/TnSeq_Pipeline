@@ -1,11 +1,32 @@
 import pandas as pd
 import numpy as np
 from collections import defaultdict
+import csv
 
 from goatools.base import download_go_basic_obo
 from goatools.obo_parser import GODag
-from __future__ import print_function
 from goatools.go_enrichment import GOEnrichmentStudy
+from goatools.associations import read_gaf
+
+def change_well_format(w):
+    if '_' in w:
+        plate = int(w[1:3])
+        t = 'LK' + str(plate) + '-'
+        n = int(w.split('_')[1])
+        lets = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        l = lets[int(np.floor((n-1)/12))]
+        return t + l + str(((n-1) % 12) + 1).zfill(2)
+    else:
+        return w
+
+def get_geno_matrix(seg_names):
+    d = pd.read_csv('../accessory_files/BYxRM_GenoData.csv')
+    map_genos = {'B': 0, 'R': 1}
+    for w in d.keys():
+        if change_well_format(w) in seg_names:
+            d[change_well_format(w)] = d[w].map(map_genos)
+    assert len([s for s in seg_names if s in d.columns]) == len(seg_names)
+    return d[['marker'] + seg_names]
 
 # Doing QTL and GO term analysis for the TP (Many strains, few mutations) experiment:
 
@@ -118,7 +139,7 @@ jerison_cols = [
        'QTL for trait: pleiotropy at OT beyond fitness',
        'QTL for trait: pleiotropy at HT beyond fitness']
 
-c2g = {'Jerison_2017': ['q.loc'] + list(jerison_cols.keys()), 'Bloom_2013': ['q.loc'], 'Bloom_2015': ['q.loc']}
+c2g = {'Jerison_2017': ['q.loc'] + jerison_cols, 'Bloom_2013': ['q.loc'], 'Bloom_2015': ['q.loc']}
 
 for d in oq_dats:
     qtl_old_info = dict()
@@ -142,10 +163,9 @@ mhq_dat.to_csv('../../Analysis/Multi_hit_QTLs.csv', index=False)
 # Get http://geneontology.org/ontology/go-basic.obo
 obo_fname = download_go_basic_obo()
 obodag = GODag("go-basic.obo")
-geneid2gos_yeast = read_gaf('gene_association.sgd')
-print("{N:,} annotated yeast genes".format(N=len(geneid2gos_yeast)))
+geneid2gos_yeast = read_gaf('../accessory_files/gene_association.sgd') #http://downloads.yeastgenome.org/curation/literature/gene_association.sgd.gz
 genename_2_id = dict()
-with open('gene_association.sgd', 'r') as infile:
+with open('../accessory_files/gene_association.sgd', 'r') as infile:
     for line in infile:
         if line[0] != '!':
             s = line.split('\t')
@@ -154,9 +174,8 @@ with open('gene_association.sgd', 'r') as infile:
 id_2_genename = {genename_2_id[i]: i for i in genename_2_id}
 ids = [i for i in geneid2gos_yeast.keys()]
 
-d = pd.read_csv('Enrichment/GO_groups.csv')
 all_measured_genes = set(tp.loc[tp['num.measured']>=50]['Gene.Use'].apply(lambda s: s.split(' ')[1]))
-background_set = [genename_2_id.setdefault(i, 'NA') for i in background_set_names]
+background_set = [genename_2_id.setdefault(i, 'NA') for i in all_measured_genes]
 
 goeaobj = GOEnrichmentStudy(
         background_set, # List of all genes in analysis
@@ -172,7 +191,9 @@ fit_effect_genes = tp.loc[tp['model_comp_p_full_vs_qtl']<0.05].sort_values(by='a
 
 #testing my groups
 results = dict()
-for entry in mhq_dat.as_matrix(['QTL', 'Genes_with_interactions']) + ['Top_x_effects', ';'.join([s.split(' ')[1] for s in fit_effect_genes])]:
+go_groups = list(mhq_dat.as_matrix(['QTL', 'Genes_with_interactions']))
+go_groups.append(['Top_x_effects', ';'.join([s.split(' ')[1] for s in fit_effect_genes])])
+for entry in go_groups:
     study_set_names = [i for i in entry[1].split(';') if 'None' not in i]
     study_set = [genename_2_id.setdefault(i, 'NA') for i in study_set_names]
     goea_results_all = goeaobj.run_study(study_set, keep_if=lambda x: x.p_uncorrected < 0.05)
