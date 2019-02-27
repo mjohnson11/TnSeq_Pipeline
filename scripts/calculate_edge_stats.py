@@ -255,6 +255,21 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
             sd[model + '_model_p_values'] = ';'.join([str(i) for i in fits[model].pvalues])
             sd[model + '_model_params'] = models[model][models[model].index('~')+2:].replace(' + ', ';')
             sd[model + '_model_coeffs'] = ';'.join([str(i) for i in fits[model].params]) # the first parameter is the intercept
+
+    # Adding some nice columns
+    sd['avg_s'] = np.mean(phenos)
+    sd['x_slope'] = fits['x'].params[1]
+    sd['full_model_x_slope'] = fits['full'].params[1]
+    # This is an unscaled effect size that says how much the regression predicts the difference in s should be btwn the most and least fit segregant
+    sd['full_model_x_effect_size_measure'] = sd['full_model_x_slope'] * (np.max(df['x'])-np.min(df['x']))  
+    # Getting the qtl coefficients in the full model so they correspond to the difference in mean fitness effect between alleles
+    qtl_effects = []
+    for i in range(len(dedup_qtl_info[0])):
+        high = np.max(df['locus_' + markers[dedup_qtl_info[0][i]]])
+        low = np.min(df['locus_' + markers[dedup_qtl_info[0][i]]])
+        qtl_effects.append((high-low)*sd['full_model_coeffs'][i+2])
+    sd['full_model_qtl_effect_sizes'] = ';'.join([str(ef) for ef in qtl_effects])
+
     # model comparison using F test
     model_comps = [('full', 'x'), ('full', 'qtl'), ('full_plus_seg', 'full')]
     for (m1, m2) in model_comps:
@@ -304,7 +319,8 @@ def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_se
 
 def add_analysis(exp, df, output_name, num_subsamples, use_only_two_rep_segs=False):
     full_cols = ['num.measured', 'num.sig', 'H2', 'H2_95_conf_low', 'H2_95_conf_high',
-                 'model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'model_comp_p_full_plus_seg_vs_full']
+                 'model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'model_comp_p_full_plus_seg_vs_full',
+                 'avg_s', 'x_slope', 'full_model_x_slope', 'full_model_x_effect_size_measure', 'full_model_qtl_effect_sizes']
     mods = ['segregant', 'x', 'qtl', 'resid_qtl', 'resid_x', 'full', 'full_plus_seg', 'full_resid_seg']
     suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
     for c in mods:
