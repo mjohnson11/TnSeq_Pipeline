@@ -85,4 +85,4 @@ for exp in exps:
         df[col] = df['DFE.statistic'].apply(lambda edge: determinant_stats[edge].setdefault(col, np.nan))
     for col in qtl_cols:
         df[col] = df['DFE.statistic'].apply(lambda edge: '|'.join([';'.join(['_'.join(q.split('_')[1:3]) for q in qtl]) for qtl in determinant_stats[edge].setdefault(col, [])])) 
-    df.to_csv(exp + '_DFE_statistics.csv', index=False)
+    df.to_csv('../../Analysis/' + exp + '_DFE_statistics.csv', index=False)
