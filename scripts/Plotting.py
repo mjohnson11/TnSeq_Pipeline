@@ -429,6 +429,19 @@ for it in tp.iterrows():
     make_single_determinant_plot(None, row, segs_tp, gm, False, True, single_plot_output_name='../../Figures/all/TP_determinants/' + str(row['Gene.Use']).replace(' ', '_') + '_' + row['Edge'] + 'determinants.png')
     make_single_determinant_plot(None, row, segs_tp, gm, True, True, single_plot_output_name='../../Figures/all/TP_determinants/' + str(row['Gene.Use']).replace(' ', '_') + '_' + row['Edge'] + 'determinants_w_error.png')
 
+model_groups = {
+    'no_model': tp.loc[~(tp['segregant_model_p']<0.05)].loc[~((tp['qtl_model_p']<0.05) | (tp['x_model_p']<0.05))],
+    'seg_model_only': tp.loc[tp['segregant_model_p']<0.05].loc[~((tp['qtl_model_p']<0.05) | (tp['x_model_p']<0.05))],
+    'x_model_only': tp.loc[tp['model_comp_p_full_vs_qtl']<0.05].loc[~(tp['model_comp_p_full_vs_x']<0.05)],
+    'qtl_model_only': tp.loc[tp['model_comp_p_full_vs_x']<0.05].loc[~(tp['model_comp_p_full_vs_qtl']<0.05)],
+    'both_in_model': tp.loc[tp['model_comp_p_full_vs_x']<0.05].loc[tp['model_comp_p_full_vs_qtl']<0.05]
+}
+for m in model_groups:
+    rows = [r[1] for r in model_groups[m].sort_values(by='Gene.Use').iterrows()]
+    for j in range(int(np.ceil(len(rows)/20))):
+        plot_20_determinants(rows[j*20:(j+1)*20], segs, 'Figures/all/TP_determinants/TP_determinants_' + m + '_' + str(j+1) + '.png')
+        plot_20_determinants(rows[j*20:(j+1)*20], segs, 'Figures/all/TP_determinants/TP_determinants_' + m + '_' + str(j+1) + '_error.png', True)
+
 ## Making DFE plots
 data_by_fit_ranks = {'BT': [[], []], 'TP': [[], []]}
 sorted_segs = {exp: sorted(segs_use[exp], key=lambda x: seg_to_fit[x]) for exp in exps}
