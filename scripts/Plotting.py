@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
 from collections import defaultdict
+import matplotlib as mpl
+mpl.use('Agg')
 from matplotlib import pyplot as pl
 import matplotlib.gridspec as gridspec
-from mpl_toolkits.axes_grid.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import seaborn as sns
 sns.set_style("white")
 
@@ -77,7 +79,7 @@ def get_dfe(df, segname, show_only='nope'):
         use_df = use_df.loc[(use_df[segname + '.mean.s'] < -0.015) | (use_df[segname + '.mean.s'] > 0.015)]
     return list(use_df[segname + '.mean.s'])
 
-def plot_dfe(sub, df, segname, inset=None, n_bins=50, n_inset_bins=50, single_plot_output_name=None):
+def plot_dfe(sub, df, segname, inset=None, n_bins=20, n_inset_bins=20, single_plot_output_name=None):
     if single_plot_output_name:
         f, sub = pl.subplots(1, 1, figsize=(5, 4))
     sub.hist(np.clip(get_dfe(df, segname), -0.2, 0.1), bins=n_bins, facecolor='#333333')
@@ -92,7 +94,9 @@ def plot_dfe(sub, df, segname, inset=None, n_bins=50, n_inset_bins=50, single_pl
         sns.despine()
         sub.tick_params(axis='both', which='major', labelsize=14)
         sub.set_xlabel('Fitness Effect', fontsize=16)
+        pl.tight_layout()        
         f.savefig(single_plot_output_name, background='transparent')
+        pl.close('all')
 
 def make_jointplots(df, cols, output_file, col_names=['match_em'], limit_size=True, sig_column=None):
     if col_names[0] == 'match_em':
@@ -105,14 +109,15 @@ def make_jointplots(df, cols, output_file, col_names=['match_em'], limit_size=Tr
         x_hists = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[:1,:4])
         cols_x = [cols[0]]
         cols_y = [cols[1]]
+        cn_x = [col_names[0]]
+        cn_y = [col_names[1]]
     else:
         f = pl.figure(figsize=(4*len(cols) + 2, 3*len(cols) + 2))
         gs0 = gridspec.GridSpec(4*len(cols) + 2, 3*len(cols) + 2)
         scatters = gridspec.GridSpecFromSubplotSpec(len(cols), len(cols), subplot_spec=gs0[2:,:3*len(cols)])
         y_hists = gridspec.GridSpecFromSubplotSpec(len(cols), 1, subplot_spec=gs0[2:,3*len(cols):])
         x_hists = gridspec.GridSpecFromSubplotSpec(1, len(cols), subplot_spec=gs0[:2,:3*len(cols)])
-        cols_x = cols
-        cols_y = cols       
+        cols_x, cols_y, cn_x, cn_y = cols, cols, col_names, col_names
 
     for i in range(len(cols_x)):
         for j in range(len(cols_y)):
@@ -129,14 +134,14 @@ def make_jointplots(df, cols, output_file, col_names=['match_em'], limit_size=Tr
             else:
                 sub_s.scatter(td[cols_x[i]], td[cols_y[j]], color='#333333')
             if j == (len(cols_y)-1): 
-                sub_s.set_xlabel(col_names[i], fontsize=20)
+                sub_s.set_xlabel(cn_x[i], fontsize=20)
                 sub_xh = pl.Subplot(f, x_hists[i])
                 f.add_subplot(sub_xh)
                 sub_xh.hist(td[cols_x[i]], bins=20, color='#333333')
                 sub_xh.set_xticks([])
                 sub_xh.set_yticks([])
             if i == 0: 
-                sub_s.set_ylabel(col_names[j], fontsize=20)
+                sub_s.set_ylabel(cn_y[j], fontsize=20)
                 sub_yh = pl.Subplot(f, y_hists[j])
                 f.add_subplot(sub_yh)
                 sub_yh.hist(td[cols_y[j]], bins=20, orientation="horizontal", color='#333333')
@@ -150,6 +155,7 @@ def make_jointplots(df, cols, output_file, col_names=['match_em'], limit_size=Tr
     #pl.gcf().subplots_adjust(bottom=0.2)
     pl.tight_layout()
     f.savefig(output_file, background='transparent')
+    pl.close('all')
     
 def plot_one(sub, df_row, segs, x_list, gm, qtl_color=False, show_pvals=False):
     y_list = list(df_row[segs])
@@ -262,10 +268,9 @@ def make_dfe_plot(exp, outname):
     top_sub.annotate('A', fontsize=40, xy=(-0.2, 1.2), xycoords="axes fraction", horizontalalignment="center")
     stats_subs[0][0].annotate('C', fontsize=40, xy=(-0.2, 1.1), xycoords="axes fraction", horizontalalignment="center")
     dfe_combined_subs[0].annotate('B', fontsize=40, xy=(-0.2, 1.1), xycoords="axes fraction", horizontalalignment="center")
-    #dfe_subs[0][0].annotate('D', fontsize=40, xy=(-0.3, 1.15), xycoords="axes fraction", horizontalalignment="center")
 
-    dfe_combined_subs[0].annotate('Most Fit Quartile\nof Segregants', fontsize=16, xy=(0.33, 0.75), xycoords="axes fraction", horizontalalignment="center")
-    dfe_combined_subs[1].annotate('Least Fit Quartile\nof Segregants', fontsize=16, xy=(0.33, 0.75), xycoords="axes fraction", horizontalalignment="center")
+    dfe_combined_subs[0].annotate('Most Fit Quartile\nof Segregants', fontsize=14, xy=(0.32, 0.7), xycoords="axes fraction", horizontalalignment="center")
+    dfe_combined_subs[1].annotate('Least Fit Quartile\nof Segregants', fontsize=14, xy=(0.32, 0.7), xycoords="axes fraction", horizontalalignment="center")
 
     jnk = [f.add_subplot(dfe_combined_subs[j]) for j in range(2)]
     jnk = [dfe_combined_subs[x].set_xlim(dfe_range) for x in range(2)]
@@ -276,6 +281,7 @@ def make_dfe_plot(exp, outname):
     sns.despine(ax=hm_sub, bottom=True)
     sns.despine(ax=top_sub, bottom=True, left=True)
     f.savefig(outname, background='transparent')
+    pl.close('all')
 
 def make_correlation_plot(segs, td, xvar, yvar, xerr_var, yerr_var, xlabel, ylabel, criteria_one, criteria_two, output_name):
     nrows = int(np.ceil(len(segs)/4))
@@ -312,7 +318,7 @@ def make_single_determinant_plot(sub, df_row, segs, gm, plot_errors, show_title,
     geno_dat = gm.as_matrix(['marker'] + measured)
     sub.axhline(y=0, xmin=0, xmax=1, color='#333333', linestyle='dashed', alpha=0.5)
     if show_title:
-        sub.set_title(str(df_row['Gene.Use']), y=0.9, fontsize=14)
+        sub.set_title(str(df_row['Gene.Use']), fontsize=14)
     sub.tick_params(axis='both', which='major', labelsize=12)
     qtl_str = str(df_row['full.model.qtls'])
     if qtl_str != 'nan':
@@ -344,7 +350,7 @@ def make_single_determinant_plot(sub, df_row, segs, gm, plot_errors, show_title,
                 sub.errorbar(x=xs1, y=ys1, yerr=ye1, marker='', c=colors[i], linestyle='')
             if plot_errors:
                 sub.errorbar(x=xs2, y=ys2, yerr=ye2, marker='', linestyle='', c=colors[i])
-            sub.scatter(x=xs2, y=ys2, marker='v', linewidth=1, facecolors='none', edgecolors=colors[i], s=25)
+            sub.scatter(x=xs2, y=ys2, marker='s', linewidth=1, facecolors='none', edgecolors=colors[i], s=25)
     else:
         xs = [seg_to_fit[measured[s]] for s in range(len(measured))]
         ys = [df_row[measured[s] + '.mean.s'] for s in range(len(measured))]
@@ -359,7 +365,9 @@ def make_single_determinant_plot(sub, df_row, segs, gm, plot_errors, show_title,
         sub.tick_params(axis='both', which='major', labelsize=14)
         sub.set_xlabel('Background Fitness', fontsize=16)
         sub.set_ylabel('Fitness Effect', fontsize=16)
+        pl.tight_layout()
         f.savefig(single_plot_output_name, background='transparent')
+    pl.close('all')
     
 def plot_20_determinants(df_rows, segs, output_name, plot_errors=False, show_title=True, big_title=False):
     nrows = int(np.ceil(len(df_rows)/4))
@@ -404,19 +412,20 @@ gm = get_geno_matrix(segs_all['TP'])
 
 ## Making correlation plots
 make_correlation_plot(segs_w_data_in_both_exps, bt, '.rep1.s', '.rep2.s', '.rep1.stderr.s', '.rep2.stderr.s', 'mean bc s rep 1', 'mean bc s rep 2',
-                     ('.rep1.cbcs', 2), ('.rep2.cbcs', 2), 'Figures/all/correlations/' + exps['BT'] + '_replicate_correlations.png')
+                     ('.rep1.cbcs', 2), ('.rep2.cbcs', 2), '../../Figures/all/correlations/' + exps['BT'] + '_replicate_correlations.png')
 make_correlation_plot(segs_w_data_in_both_exps, tp, '.rep1.s', '.rep2.s', '.rep1.stderr.s', '.rep2.stderr.s', 'mean bc s rep 1', 'mean bc s rep 2',
-                     ('.rep1.cbcs', 2), ('.rep2.cbcs', 2), 'Figures/all/correlations/' + exps['TP'] + '_replicate_correlation_examples.png')
+                     ('.rep1.cbcs', 2), ('.rep2.cbcs', 2), '../../Figures/all/correlations/' + exps['TP'] + '_replicate_correlation_examples.png')
 dm = tp.merge(bt, on='Edge', how='inner', suffixes=('_TP', '_BT'))
 make_correlation_plot(segs_w_data_in_both_exps, dm, '.mean.s_BT', '.mean.s_TP', '.stderr.s_BT', '.stderr.s_TP', exps['BT'] + ' s', exps['TP'] + ' s',
-                     ('.total.cbcs_BT', 4), ('.total.cbcs_TP', 4), 'Figures/all/correlations/' + exps['TP'] + '_' +  exps['BT'] + '_correlations.png')
+                     ('.total.cbcs_BT', 4), ('.total.cbcs_TP', 4), '../../Figures/all/correlations/' + exps['TP'] + '_' +  exps['BT'] + '_correlations.png')
 segs_tp = segs_use['TP']
 for i in range(int(np.ceil(len(segs_tp)/20))):
     make_correlation_plot(segs_tp[i*20:(i+1)*20], tp, '.rep1.s', '.rep2.s', '.rep1.stderr.s', '.rep2.stderr.s', 'mean bc s rep 1', 'mean bc s rep 2',
-                         ('.rep1.cbcs', 2), ('.rep2.cbcs', 2), 'Figures/all/correlations/' + exps['TP'] + '_replicate_correlations_' + str(i+1) + '.png')
+                         ('.rep1.cbcs', 2), ('.rep2.cbcs', 2), '../../Figures/all/correlations/' + exps['TP'] + '_replicate_correlations_' + str(i+1) + '.png')
 
 # Making determinant plots for TP
-for row in tp.iterrows():
+for it in tp.iterrows():
+    row = it[1]
     make_single_determinant_plot(None, row, segs_tp, gm, False, True, single_plot_output_name='../../Figures/all/TP_determinants/' + str(row['Gene.Use']).replace(' ', '_') + '_' + row['Edge'] + 'determinants.png')
     make_single_determinant_plot(None, row, segs_tp, gm, True, True, single_plot_output_name='../../Figures/all/TP_determinants/' + str(row['Gene.Use']).replace(' ', '_') + '_' + row['Edge'] + 'determinants_w_error.png')
 
@@ -434,22 +443,23 @@ for exp in exps:
             plot_dfe(None, dats[exp], seg, single_plot_output_name='../../Figures/all/DFEs/TP/TP_DFE_' + seg + '.png')
         else:
             plot_dfe(None, dats[exp], seg, n_bins=25, n_inset_bins=25, inset='sig_uncorrected', single_plot_output_name='../../Figures/all/DFEs/BT/BT_DFE_' + seg + '.png')
-
-    dats[exp]['x_p_any_type'] = dats[exp].apply(lambda row: np.nanmax([row['x_model_p'], row['model_comp_p_full_vs_qtl']]), axis=1)
-    dats[exp]['top_qtl_es'] = dats[exp]['full_model_qtl_effect_sizes'].apply(lambda es: float(str(es).split(';')[0]))
-
+    #dats[exp]['x_p_any_type'] = dats[exp].apply(lambda row: np.nanmax([row['x_model_p'], row['model_comp_p_full_vs_qtl']]), axis=1)
+    #dats[exp]['top_qtl_es'] = dats[exp]['full_model_qtl_effect_sizes'].apply(lambda es: float(str(es).split(';')[0]))
+exp = 'TP'
+dats[exp]['x_p_any_type'] = dats[exp].apply(lambda row: np.nanmax([row['x_model_p'], row['model_comp_p_full_vs_qtl']]), axis=1)
+dats[exp]['top_qtl_es'] = dats[exp]['full_model_qtl_effect_sizes'].apply(lambda es: float(str(es).split(';')[0]))
 
 make_dfe_plot('TP', '../../Figures/' + exps['TP'] + '_dfe_fig.png')
 make_dfe_plot('BT', '../../Figures/all/' + exps['BT'] + '_dfe_fig.png')
 
 ## Making effect size / genetic determinants plots
-make_jointplots(dats['TP'], ['avg.s', 'full_model_x_slope'], 'Figures/all/X_slopes_fig.png', col_names=['Average Fitness Effect', 'Regression slope'], sig_column='x_p_any_type')
+make_jointplots(dats['TP'], ['avg_s', 'full_model_x_slope'], '../../Figures/all/X_slopes_fig.png', col_names=['Average Fitness Effect', 'Regression slope'], sig_column='x_p_any_type')
 
-make_jointplots(dats['TP'], ['avg.s', 'full_model_x_effect_size_measure'], 'Figures/all/X_effect_size_fig.png', col_names=['Average Fitness Effect', 'Background Fitness\nEffect Size'], sig_column='x_p_any_type')
+make_jointplots(dats['TP'], ['avg_s', 'full_model_x_effect_size_measure'], '../../Figures/all/X_effect_size_fig.png', col_names=['Average Fitness Effect', 'Background Fitness\nEffect Size'], sig_column='x_p_any_type')
 
-make_jointplots(dats['TP'], ['avg.s', 'top_qtl_es'], 'Figures/all/QTL_effect_size_fig.png', col_names=['Average Fitness Effect', 'Top QTL\nEffect Size'], sig_column='model_comp_p_full_vs_x')
+make_jointplots(dats['TP'], ['avg_s', 'top_qtl_es'], '../../Figures/all/QTL_effect_size_fig.png', col_names=['Average Fitness Effect', 'Top QTL\nEffect Size'], sig_column='model_comp_p_full_vs_x')
 
-make_jointplots(dats['TP'], ['full_model_x_effect_size_measure', 'top_qtl_es'], 'Figures/all/QTL_vs_X_effect_size_fig.png', col_names=['Background Fitness\nEffect Size', 'Top QTL\nEffect Size'], sig_column='model_comp_p_full_vs_x')
+make_jointplots(dats['TP'], ['full_model_x_effect_size_measure', 'top_qtl_es'], '../../Figures/all/QTL_vs_X_effect_size_fig.png', col_names=['Background Fitness\nEffect Size', 'Top QTL\nEffect Size'], sig_column='model_comp_p_full_vs_x')
 
 
 ## Various other plots
@@ -480,16 +490,22 @@ for i in range(16):
     subs[i].set_yticks([])
     subs[i].annotate(str(i+1), (0, 0.4), fontsize=20)
 sns.despine(left=True)    
-fig.savefig('Figures/all/QTL_map.png', background='transparent')
+fig.savefig('../../Figures/all/QTL_map.png', background='transparent')
 
 # QTL effect sizes
 qtl_df = pd.read_csv('../../Analysis/QTL_results.csv')
+mhq_df = pd.read_csv('../../Analysis/Multi_hit_QTLs.csv')
 f, sub = pl.subplots(1, 1, figsize=(7, 5))
-sns.swarmplot(x='QTL_group', y='effect_size', data=qtl_df.loc[qtl_df['QTL_group'] != ''], ax=sub)
-sub.set_xticks(rotation='vertical')
+qtl_group_2_simpler = {i[0]: i[0].split('_')[1] + '_' + str(int(i[1])) for i in mhq_df.as_matrix(['QTL', 'median.loc'])}
+qtl_df['QTL_group_simple'] = qtl_df['QTL_group'].apply(lambda q: qtl_group_2_simpler.setdefault(q, 'Other'))
+sns.swarmplot(x='QTL_group_simple', y='effect_size', data=qtl_df.sort_values(by='QTL_group_simple'), ax=sub)
+pl.xticks(rotation='vertical')
 sub.tick_params(axis='both', which='major', labelsize=16)
 sns.despine()
-f.savefig('Figures/all/QTL_group_effect_sizes.png', background='transparent')
+sub.set_xlabel('Multi-hit QTL', fontsize=16)
+sub.set_ylabel('Epistatic effect', fontsize=16)
+pl.tight_layout()
+f.savefig('../../Figures/all/QTL_group_effect_sizes.png', background='transparent')
 
 
 
