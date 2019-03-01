@@ -207,7 +207,7 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
     # In this function, I fit a series of nested models to explain fitness measurements
     # I both fit models to the residuals from restricted models (i.e. fit a qtl model to the residuals from a background fitness model)
     # And do F tests to compare models and restricted models.  The first is more conservative, but the p values are similar in both cases
-    sd = {'var', np.var(phenos)}
+    sd = {'var': np.var(phenos)}
     markers = list(gm_df['marker'])
     gm_centered = center_geno_mat(gm_df, seg_list)
     # Making a dataframe for modeling

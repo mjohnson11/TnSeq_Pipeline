@@ -395,6 +395,8 @@ def plot_20_determinants(df_rows, segs, output_name, plot_errors=False, show_tit
         
         
 def make_determinants_figure(outname, gm, plot_errors=False, plot_std_dev=True):
+    
+    df = tp
 
     f = pl.figure(figsize=(24, 28))
     pl.subplots_adjust(wspace=0.4)
@@ -491,7 +493,7 @@ segs_use = {exp: [s for s in segs_all[exp] if len(dats[exp].loc[dats[exp][s + '.
 gm = get_geno_matrix(segs_all['TP'])
 
 # Make main determinant figure
-make_determinants_figure('../../Figures/Genetic_Determinants.png', gm, plot_errors=True)
+make_determinants_figure('../../Figures/Genetic_Determinants.png', tp_all, gm, plot_errors=True)
 
 ## Making correlation plots
 make_correlation_plot(segs_w_data_in_both_exps, bt, '.rep1.s', '.rep2.s', '.rep1.stderr.s', '.rep2.stderr.s', 'mean bc s rep 1', 'mean bc s rep 2',
