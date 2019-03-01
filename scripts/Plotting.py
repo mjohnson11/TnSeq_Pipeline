@@ -491,7 +491,7 @@ segs_use = {exp: [s for s in segs_all[exp] if len(dats[exp].loc[dats[exp][s + '.
 gm = get_geno_matrix(segs_all['TP'])
 
 # Make main determinant figure
-make_determinants_figure('../../Figures/Genetic_Determinants.png', plot_errors=True)
+make_determinants_figure('../../Figures/Genetic_Determinants.png', gm, plot_errors=True)
 
 ## Making correlation plots
 make_correlation_plot(segs_w_data_in_both_exps, bt, '.rep1.s', '.rep2.s', '.rep1.stderr.s', '.rep2.stderr.s', 'mean bc s rep 1', 'mean bc s rep 2',
@@ -602,10 +602,3 @@ sub.set_xlabel('Multi-hit QTL', fontsize=16)
 sub.set_ylabel('Epistatic effect', fontsize=16)
 pl.tight_layout()
 f.savefig('../../Figures/all/QTL_group_effect_sizes.png', background='transparent')
-
-
-
-
-
-
-
