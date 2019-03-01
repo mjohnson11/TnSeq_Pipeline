@@ -349,8 +349,8 @@ def make_single_determinant_plot(sub, df_row, segs, gm, plot_errors, show_title,
             if plot_errors:
                 sub.errorbar(x=xs1, y=ys1, yerr=ye1, marker='', c=colors[i], linestyle='')
             if plot_errors:
-                sub.errorbar(x=xs2, y=ys2, yerr=ye2, marker='', linestyle='', c=colors[i])
-            sub.scatter(x=xs2, y=ys2, marker='s', linewidth=1, facecolors='none', edgecolors=colors[i], s=25)
+                sub.errorbar(x=xs2, y=ys2, yerr=ye2, marker='', linestyle='', c=colors[i], alpha=0.5)
+            sub.scatter(x=xs2, y=ys2, marker='o', linewidth=1, facecolors='none', edgecolors=colors[i], s=25, alpha=0.5)
     else:
         xs = [seg_to_fit[measured[s]] for s in range(len(measured))]
         ys = [df_row[measured[s] + '.mean.s'] for s in range(len(measured))]
@@ -367,7 +367,7 @@ def make_single_determinant_plot(sub, df_row, segs, gm, plot_errors, show_title,
         sub.set_ylabel('Fitness Effect', fontsize=16)
         pl.tight_layout()
         f.savefig(single_plot_output_name, background='transparent')
-    pl.close('all')
+        pl.close('all')
     
 def plot_20_determinants(df_rows, segs, output_name, plot_errors=False, show_title=True, big_title=False):
     nrows = int(np.ceil(len(df_rows)/4))
@@ -392,6 +392,86 @@ def plot_20_determinants(df_rows, segs, output_name, plot_errors=False, show_tit
     if output_name:
         fig.savefig(output_name, background='transparent')
         pl.close('all')
+        
+        
+def make_determinants_figure(outname, gm, plot_errors=False, plot_std_dev=True):
+
+    f = pl.figure(figsize=(24, 28))
+    pl.subplots_adjust(wspace=0.4)
+    gs0 = gridspec.GridSpec(10, 52)
+
+    top_sub = pl.subplot(gs0[:2,2:50])
+    gs01 = gridspec.GridSpecFromSubplotSpec(5, 3, subplot_spec=gs0[3:,2:45])
+    subps = [[pl.Subplot(f, gs01[i, j]) for j in range(3)] for i in range(5)]
+    
+    example_loc = len(df)+7
+    xbars = np.array([i for i in range(len(df))] + [example_loc])
+    gene_descrips = list(df['Gene.Use'])
+    edges_in_order = list(df['Edge'])
+    pl.xticks(xbars, [i.split(' ')[1] for i in gene_descrips], rotation='vertical', fontsize=12)
+    ticks = top_sub.get_xticklabels()
+    cd = {'in': 'red', 'nearby': 'black'}
+    jnk = [ticks[i].set_color(cd[gene_descrips[i].split(' ')[0]]) for i in range(len(gene_descrips))]
+    for i, label in enumerate(ticks):
+        label.set_y(label.get_position()[1] + 0.025)
+    top_sub.tick_params(axis='y', which='major', labelsize=14)
+    top_sub.set_xlim([-1, len(gene_descrips)+16])
+    top_sub.set_ylim([0, 0.055])
+    ex_dev, ex_full, ex_qtl, ex_x = 0.05, 0.03, 0.022, 0.007
+    top_sub.bar(xbars, list(np.sqrt(df['var'])) + [ex_dev], color='none', edgecolor='black', width=0.7)
+    top_sub.bar(xbars, list(np.sqrt(df['full_sig_only_r2']*df['var'])) + [ex_full], color='#BBBBBB', width=0.7)
+    top_sub.scatter(xbars-0.05, list(np.sqrt(df['x_sig_only_r2']*df['var'])) + [ex_x], color='#222222', marker='x', zorder=3)
+    top_sub.scatter(xbars-0.05, list(np.sqrt(df['qtl_sig_only_r2']*df['var'])) + [ex_qtl], color=colors[1], marker='o', zorder=4)
+
+    top_sub.annotate('$\sigma_{XM}$\n(variance\nexplained by\nX model)$^{1/2}$', xy=(example_loc+8, ex_x), xycoords='data', fontsize=20, ha='center', va='center')
+    top_sub.plot([example_loc+0.7, example_loc+3], [ex_x, ex_x], c='k')
+
+    top_sub.annotate("$\sigma_{FM}$\n(variance\nexplained by\nfull model)$^{1/2}$", xy=(example_loc+8, ex_full), xycoords='data', fontsize=20, ha='center', va='center')
+    top_sub.plot([example_loc+0.7, example_loc+3], [ex_full, ex_full], c='k')
+
+    top_sub.annotate('$\sigma_{QM}$\n(variance\nexplained by\nQTL model)$^{1/2}$', xy=(example_loc-8, ex_qtl), xycoords='data', fontsize=20, ha='center', va='center')
+    top_sub.plot([example_loc-0.7, example_loc-3], [ex_qtl, ex_qtl], c='k')
+
+    top_sub.annotate('$\sigma_s$\n(std dev of\nfitness effect)', xy=(example_loc-8, ex_dev), xycoords='data', fontsize=20, ha='center', va='center')
+    top_sub.plot([example_loc-0.7, example_loc-3], [ex_dev, ex_dev], c='k')
+    
+    examples = [
+        'GTTTAGCTTCCGTTG',  #in RPL16A
+        'TCAAAGCATGAAAAA',  #in SUM1
+        'CTTTCTTGTGTATTT',  #in BRR1
+        'CCAACACAGGCTTCG',  #in NOP16
+        'TGGAGTCTTTGTTGA',  #in NOT3
+        'TTATATTTATTTGCT',  #in SIR3
+        'CTACTTACAACGGAA',  #in KAP123
+        'ATTATCATCGCCATC',  #in PIH1
+        'AGTGTTAATCAGACC',  #nearby PAH1
+        'GAACTCAGGTTCCAT',  #in MME1
+        'AGTGTATGATAATAT',  #nearby KRI1
+        'GTACAAGAAATTTTG',  #nearby PDE2
+        'TATATTGAACTTTAC', 'TCAAAACGGAGTGTT', 'ACAACCTACCTGCTA' # references
+    ]
+
+    c = 0
+    for subarr in subps:
+        for sub in subarr:
+            edge = examples[c]
+            c += 1
+            if c < 13:
+                top_sub.annotate(str(c), ((edges_in_order.index(edge)+0.6)/(len(gene_descrips)+17), -0.22), fontsize=10, xycoords='axes fraction', bbox={"boxstyle" : "circle", "color":"#BBBBBB"}, zorder=5)
+                sub.annotate(str(c),(-0.14,0.06), fontsize=12, xycoords='data', bbox={"boxstyle" : "circle", "color":"#BBBBBB"})
+            df_row = tp_all.loc[tp_all['Edge']==edge].iloc[0]
+            make_single_determinant_plot(sub, df_row, segs, gm, True, True)
+            sub.set_xlim([-0.16, 0.12])
+            sub.set_ylim([-0.2, 0.09])
+            f.add_subplot(sub)
+    
+    subps[1][0].annotate('Fitness Effect', fontsize=25, xy=(-0.25, -0.16), xycoords='axes fraction', rotation=90, ha='center', va='center')
+    subps[3][1].annotate('Background Fitness', fontsize=25, xy=(0.5, -0.2), xycoords='axes fraction', ha='center', va='top')
+    sns.despine()
+    sns.despine(left=True, bottom=True, ax=top_sub)
+            
+    f.savefig(outname, background='transparent')
+
 
 
 ## READING DATA
@@ -409,6 +489,9 @@ exps = {'BT': 'MM', 'TP': 'FM'}
 segs_all = {exp: [i.split('.')[0] for i in dats[exp] if '.mean.s' in i] for exp in exps}
 segs_use = {exp: [s for s in segs_all[exp] if len(dats[exp].loc[dats[exp][s + '.total.cbcs']>=4])>50] for exp in exps}
 gm = get_geno_matrix(segs_all['TP'])
+
+# Make main determinant figure
+make_determinants_figure('../../Figures/Genetic_Determinants.png', plot_errors=True)
 
 ## Making correlation plots
 make_correlation_plot(segs_w_data_in_both_exps, bt, '.rep1.s', '.rep2.s', '.rep1.stderr.s', '.rep2.stderr.s', 'mean bc s rep 1', 'mean bc s rep 2',
