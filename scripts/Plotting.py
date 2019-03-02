@@ -320,9 +320,10 @@ def make_single_determinant_plot(sub, df_row, segs, gm, plot_errors, show_title,
     if show_title:
         sub.set_title(str(df_row['Gene.Use']), fontsize=14)
     sub.tick_params(axis='both', which='major', labelsize=12)
-    qtl_str = str(df_row['full.model.qtls'])
-    if qtl_str != 'nan':
-        edge_qtls = [i.split(';')[0] for i in qtl_str.split('|')]
+    if str(df_row['full.model.qtls']) != 'nan':
+        edge_qtls_unsorted = [i.split(';')[0] for i in str(df_row['full.model.qtls']).split('|')]
+        qtl_effects = [float(i) for i in str(df_row['full_model_coeffs']).split(';')[2:]]
+        edge_qtls = [i for jnk,i in sorted(zip(qtl_effects, edge_qtls_unsorted), reverse=True)]
     else:
         edge_qtls = []
     if len(edge_qtls) == 1:
