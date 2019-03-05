@@ -475,7 +475,11 @@ def make_determinants_figure(outname, gm, plot_errors=False, plot_std_dev=True):
             
     f.savefig(outname, background='transparent')
 
-
+def get_sig_r2(row, model):
+    if row[model + '_model_p'] < 0.05:
+        return row[model + '_model_r2']
+    else:
+        return np.nan
 
 ## READING DATA
 x_info = pd.read_csv('../accessory_files/Clones_For_Tn96_Experiment.csv')
@@ -492,6 +496,11 @@ exps = {'BT': 'MM', 'TP': 'FM'}
 segs_all = {exp: [i.split('.')[0] for i in dats[exp] if '.mean.s' in i] for exp in exps}
 segs_use = {exp: [s for s in segs_all[exp] if len(dats[exp].loc[dats[exp][s + '.total.cbcs']>=4])>50] for exp in exps}
 gm = get_geno_matrix(segs_all['TP'])
+
+#adding columns where the r2 is zero if the model is not significantly better than the null model
+for model in ['segregant', 'full', 'x', 'qtl', 'full_plus_seg']:
+    tp[model + '_sig_only_r2'] = tp.apply(lambda row: get_sig_r2(row, model), axis=1)
+
 
 # Make main determinant figure
 make_determinants_figure('../../Figures/Genetic_Determinants.png', gm, plot_errors=True)
