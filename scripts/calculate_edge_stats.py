@@ -296,11 +296,12 @@ def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_se
     reps = ['rep1', 'rep2']
     measured_by_rep = {r: [seg for seg in segs if row[seg + '.' + r + '.cbcs'] >= 2] for r in reps}
     stat_dict = {'num.measured': len(measured)}
-    if len(measured) >= 10:
+    if len(measured) > 0:
         pvals = [row[seg + '.pval'] for seg in measured]
         pval_sig_boolean = benjamini_hochberg(pvals)[0]  # B/H with alpha=0.05 by default
         sig = [measured[s] for s in range(len(measured)) if pval_sig_boolean[s]]
         stat_dict['num.sig'] = len(sig)
+    if len(measured) >= 10:
         means = [row[seg + '.mean.s'] for seg in measured]
         variances = [row[seg + '.stderr.s']**2 for seg in measured]
         Vg = np.var(means)
