@@ -257,7 +257,7 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
             sd[model + '_model_coeffs'] = ';'.join([str(i) for i in fits[model].params]) # the first parameter is the intercept
 
     # Adding some nice columns
-    sd['avg_s'] = np.mean(phenos)
+    sd['avg_s'] = np.nanmean(phenos)
     sd['x_slope'] = fits['x'].params[1]
     sd['full_model_x_slope'] = fits['full'].params[1]
     # This is an unscaled effect size that says how much the regression predicts the difference in s should be btwn the most and least fit segregant
