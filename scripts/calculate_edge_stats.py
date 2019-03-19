@@ -257,7 +257,6 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
             sd[model + '_model_coeffs'] = ';'.join([str(i) for i in fits[model].params]) # the first parameter is the intercept
 
     # Adding some nice columns
-    sd['avg_s'] = np.nanmean(phenos)
     sd['x_slope'] = fits['x'].params[1]
     sd['full_model_x_slope'] = fits['full'].params[1]
     # This is an unscaled effect size that says how much the regression predicts the difference in s should be btwn the most and least fit segregant
@@ -301,6 +300,7 @@ def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_se
         pval_sig_boolean = benjamini_hochberg(pvals)[0]  # B/H with alpha=0.05 by default
         sig = [measured[s] for s in range(len(measured)) if pval_sig_boolean[s]]
         stat_dict['num.sig'] = len(sig)
+        stat_dict['avg_s'] = np.nanmean([row[seg + '.mean.s'] for seg in measured])
     if len(measured) >= 10:
         means = [row[seg + '.mean.s'] for seg in measured]
         variances = [row[seg + '.stderr.s']**2 for seg in measured]
