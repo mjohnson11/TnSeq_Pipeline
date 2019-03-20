@@ -201,88 +201,136 @@ def plot_one(sub, df_row, segs, x_list, gm, qtl_color=False, show_pvals=False):
     y_range = max(y_list)-min(y_list)
     sub.set_ylim([min(y_list)-y_range*0.25, max(y_list)+y_range*0.25]) # I don't know why pyplot is not doing this well automatically here
     
-def make_dfe_plot(exp, outname):
-    hm_x, hm_y = data_by_fit_ranks[exp]
+def make_dfe_plot_combined(exps_list, outname):
     dfe_range = [-0.15, 0.07]
-    f = pl.figure(figsize=(26, 10))
-    gs0 = gridspec.GridSpec(30, 48)
-    top_fit_gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[:6,1:12])
-    fit_heatmaps_gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[7:26,1:12])
-    stats_gs1 = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[:26,30:38])
-    stats_gs2 = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[:26,40:])
-    dfe_combined_gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[:26,17:25])
-    top_sub = pl.Subplot(f, top_fit_gs[0])
-    hm_sub = pl.Subplot(f, fit_heatmaps_gs[0])
-    stats_subs = [[pl.Subplot(f, stats_gs1[j]) for j in range(2)], [pl.Subplot(f, stats_gs2[j]) for j in range(2)]]
-    dfe_combined_subs = [pl.Subplot(f, dfe_combined_gs[j]) for j in range(2)]
-    if len(segs_use[exp]) > 40:
-        combine_bin = len(segs_use[exp])/3
-    else:
-        combine_bin = len(segs_use[exp])
-    hm_sub.hist2d(hm_x, hm_y, bins=[combine_bin, 30], cmin=1, cmap=pl.cm.viridis)
-    hm_sub.tick_params(axis='both', which='major', labelsize=16)
+    f = pl.figure(figsize=(26, 22))
+    gs0 = gridspec.GridSpec(65, 48)
+    top_fit_gs = [gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[:6,1:12]), 
+                  gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[35:41,1:12])]
+    fit_heatmaps_gs = [gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[7:26,1:12]),
+                       gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[42:61,1:12])]
+    stats_gs1 = [gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[:26,30:38]),
+                 gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[35:61,30:38])]
+    stats_gs2 = [gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[:26,40:]),
+                 gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[35:61,40:])]
 
-    hm_sub.set_ylim(dfe_range)
-    hm_sub.annotate('Background Fitness Rank', fontsize=20, xy=(0.5, -0.15), xycoords="axes fraction", horizontalalignment="center")
-    hm_sub.set_ylabel('Fitness Effect', fontsize=20)
-    #hm_sub.set_yticks([])
-    f.add_subplot(hm_sub)
-
-    top_sub.plot([i for i in range(len(sorted_segs[exp]))], [seg_to_fit[s] for s in sorted_segs[exp]])
-    top_sub.tick_params(axis='both', which='major', labelsize=16)
-    top_sub.set_xticks([])
-    top_sub.set_ylim([-0.12, 0.12])
-    top_sub.set_ylabel('Background\nFitness', fontsize=20)
-    f.add_subplot(top_sub)
-
-    num_to_combine = int(len(segs_use[exp])/4) #plotting quartiles
-    stats = ['mean', 'skew', 'significant.beneficial.mutations', 'significant.deleterious.mutations']
-    stat_names = {'mean': 'DFE Mean', 'skew': 'DFE skew', 'significant.beneficial.mutations': '# of Bene. Mutations', 
-                  'significant.deleterious.mutations': '# of Del. Mutations'}
-    i = 0
-    for j in range(2):
-        for k in range(2):
-            if exp == 'TP':
-                plot_one(stats_subs[j][k], dats['TP.DFE'].loc[dats['TP.DFE']['DFE.statistic']==stats[i]].iloc[0], segs_use['TP'], 
-                         [seg_to_fit[s] for s in segs_use['TP']], gm, qtl_color=True)
-            else:
-                plot_one(stats_subs[j][k], dats['BT.DFE'].loc[dats['BT.DFE']['DFE.statistic']==stats[i]].iloc[0], segs_use['BT'], 
-                         [seg_to_fit[s] for s in segs_use['BT']], gm, show_pvals=True)
-            stats_subs[j][k].set_ylabel(stat_names[stats[i]], fontsize=20)
-            if k == 0:
-                stats_subs[j][k].set_xticks([])
-            f.add_subplot(stats_subs[j][k])
-            i += 1
-    stats_subs[0][1].annotate('Background Fitness', fontsize=20, xy=(1.2, -0.24), xycoords="axes fraction", horizontalalignment="center")
-
-    top_dfe, bottom_dfe = [], [],    
-    for i in range(num_to_combine):
-        bottom_dfe += get_dfe(dats[exp], sorted_segs[exp][i])
-        top_dfe += get_dfe(dats[exp], sorted_segs[exp][len(sorted_segs[exp])-1-i])
+    lets = [['A', 'B', 'C'], ['D', 'E', 'F']]
+    for c in range(2):
+        exp = exps_list[c]
+        hm_x, hm_y = data_by_fit_ranks[exp]
+        top_sub = pl.Subplot(f, top_fit_gs[c][0])
+        hm_sub = pl.Subplot(f, fit_heatmaps_gs[c][0])
+        stats_subs = [[pl.Subplot(f, stats_gs1[c][j]) for j in range(2)], [pl.Subplot(f, stats_gs2[c][j]) for j in range(2)]]
         
-    dfe_combined_subs[0].hist(top_dfe, bins=50, color="#333333")
-    dfe_combined_subs[1].hist(bottom_dfe, bins=50, color="#333333")
+        if len(segs_use[exp]) > 40:
+            combine_bin = len(segs_use[exp])/3
+        else:
+            combine_bin = len(segs_use[exp])
+        h = hm_sub.hist2d(hm_x, hm_y, bins=[combine_bin, 30], cmin=1, cmap=pl.cm.viridis)
+        #cb = pl.colorbar(h[3], ax=hm_sub, orientation="horizontal")
+        #cb.outline.set_visible(False)
+        #cb.ax.tick_params(labelsize=16)
+        #if c == 0: f.axes[-2].remove() #fixing weird colorbar bug
+        hm_sub.tick_params(axis='both', which='major', labelsize=16)
 
-    dfe_combined_subs[1].annotate('Fitness Effect', fontsize=20, xy=(0.5, -0.24), xycoords="axes fraction", horizontalalignment="center")
+        hm_sub.set_ylim(dfe_range)
+        hm_sub.annotate('Background Fitness Rank', fontsize=20, xy=(0.5, -0.15), xycoords="axes fraction", horizontalalignment="center")
+        hm_sub.set_ylabel('Fitness Effect', fontsize=20)
+        #hm_sub.set_yticks([])
+        f.add_subplot(hm_sub)
 
-    top_sub.annotate('A', fontsize=40, xy=(-0.2, 1.2), xycoords="axes fraction", horizontalalignment="center")
-    stats_subs[0][0].annotate('C', fontsize=40, xy=(-0.2, 1.1), xycoords="axes fraction", horizontalalignment="center")
-    dfe_combined_subs[0].annotate('B', fontsize=40, xy=(-0.2, 1.1), xycoords="axes fraction", horizontalalignment="center")
+        top_sub.plot([i for i in range(len(sorted_segs[exp]))], [seg_to_fit[s] for s in sorted_segs[exp]])
+        top_sub.tick_params(axis='both', which='major', labelsize=16)
+        top_sub.set_xticks([])
+        top_sub.set_ylim([-0.12, 0.12])
+        top_sub.set_ylabel('Background\nFitness', fontsize=20)
+        f.add_subplot(top_sub)
 
-    dfe_combined_subs[0].annotate('Most Fit Quartile\nof Segregants', fontsize=14, xy=(0.32, 0.7), xycoords="axes fraction", horizontalalignment="center")
-    dfe_combined_subs[1].annotate('Least Fit Quartile\nof Segregants', fontsize=14, xy=(0.32, 0.7), xycoords="axes fraction", horizontalalignment="center")
+        num_to_combine = int(len(segs_use[exp])/4) #plotting quartiles
+        stats = ['mean', 'skew', 'significant.beneficial.mutations', 'significant.deleterious.mutations']
+        stat_names = {'mean': 'DFE Mean', 'skew': 'DFE skew', 'significant.beneficial.mutations': '# of Bene. Mutations', 
+                      'significant.deleterious.mutations': '# of Del. Mutations'}
+        i = 0
+        for j in range(2):
+            for k in range(2):
+                if exp == 'TP':
+                    plot_one(stats_subs[j][k], dats['TP.DFE'].loc[dats['TP.DFE']['DFE.statistic']==stats[i]].iloc[0], segs_use['TP'], 
+                             [seg_to_fit[s] for s in segs_use['TP']], gm, qtl_color=True)
+                else:
+                    plot_one(stats_subs[j][k], dats['BT.DFE'].loc[dats['BT.DFE']['DFE.statistic']==stats[i]].iloc[0], segs_use['BT'], 
+                             [seg_to_fit[s] for s in segs_use['BT']], gm, show_pvals=True)
+                stats_subs[j][k].set_ylabel(stat_names[stats[i]], fontsize=20)
+                if k == 0:
+                    stats_subs[j][k].set_xticks([])
+                f.add_subplot(stats_subs[j][k])
+                i += 1
+        stats_subs[0][1].annotate('Background Fitness', fontsize=20, xy=(1.2, -0.24), xycoords="axes fraction", horizontalalignment="center")
 
-    jnk = [f.add_subplot(dfe_combined_subs[j]) for j in range(2)]
-    jnk = [dfe_combined_subs[x].set_xlim(dfe_range) for x in range(2)]
-    jnk = [dfe_combined_subs[x].tick_params(axis='both', which='major', labelsize=16) for x in range(2)]
-    jnk = [stats_subs[y][x].tick_params(axis='both', which='major', labelsize=16) for x in range(2) for y in range(2)]
+        top_dfe, bottom_dfe = [], [],    
+        for i in range(num_to_combine):
+            bottom_dfe += get_dfe(dats[exp], sorted_segs[exp][i])
+            top_dfe += get_dfe(dats[exp], sorted_segs[exp][len(sorted_segs[exp])-1-i])
+            
+        bin_lefts = [(-19+i)*0.01-0.005 for i in range(27)]
+        if exp == 'TP':
+            dfe_combined_gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[35:61,17:25])
+            dfe_combined_subs = [pl.Subplot(f, dfe_combined_gs[j]) for j in range(2)]
+            dfe_combined_subs[0].hist(top_dfe, bins=bin_lefts, color="#333333", weights=np.ones_like(top_dfe)/float(len(top_dfe)))
+            dfe_combined_subs[1].hist(bottom_dfe, bins=bin_lefts, color="#333333", weights=np.ones_like(bottom_dfe)/float(len(bottom_dfe)))
+            dfe_combined_subs[1].annotate('Fitness Effect', fontsize=20, xy=(0.5, -0.24), xycoords="axes fraction", horizontalalignment="center")
+            dfe_combined_subs[0].annotate('Most Fit Quartile\nof Segregants', fontsize=14, xy=(0.32, 0.7), xycoords="axes fraction", horizontalalignment="center")
+            dfe_combined_subs[1].annotate('Least Fit Quartile\nof Segregants', fontsize=14, xy=(0.32, 0.7), xycoords="axes fraction", horizontalalignment="center")
+            jnk = [f.add_subplot(dfe_combined_subs[j]) for j in range(2)]
+            dfe_combined_subs[0].annotate(lets[c][1], fontsize=40, xy=(-0.2, 1.1), xycoords="axes fraction", horizontalalignment="center")
+            jnk = [dfe_combined_subs[x].tick_params(axis='both', which='major', labelsize=16) for x in range(2)]
+            jnk = [sns.despine(ax=dfe_combined_subs[x], bottom=True, left=True) for x in range(2)]
+        else:
+            split_2 = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[:26,17:25]) 
+            dfes = [top_dfe, bottom_dfe]
+            for i in range(2):
+                divider = gridspec.GridSpecFromSubplotSpec(8, 1, subplot_spec=split_2[i])
+                top = pl.Subplot(f, gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=divider[:2])[0])
+                bottom = pl.Subplot(f, gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=divider[3:])[0])
+                
+                top.hist(dfes[i], bins=bin_lefts, color="#333333", weights=np.ones_like(dfes[i])/float(len(dfes[i])))
+                bottom.hist(dfes[i], bins=bin_lefts, color="#333333", weights=np.ones_like(dfes[i])/float(len(dfes[i])))
+                top.set_ylim([0.5, 1])
+                bottom.set_ylim([0, 0.1])
+                top.set_xticks([])
+                jnk = [f.add_subplot(s) for s in [top, bottom]]
+                jnk = [s.tick_params(axis='both', which='major', labelsize=16) for s in [top, bottom]]
+                sns.despine(ax=top, bottom=True)
+                sns.despine(ax=bottom, bottom=True)
+                # from https://matplotlib.org/examples/pylab_examples/broken_axis.html
+                d = .02  # how big to make the diagonal lines in axes coordinates
+                # arguments to pass to plot, just so we don't keep repeating them
+                kwargs = dict(transform=top.transAxes, color='k', clip_on=False)
+                top.plot((-d, +d), (-d*(5/2), +d*(5/2)), **kwargs)        # top-left diagonal
 
-    sns.despine()
-    sns.despine(ax=hm_sub, bottom=True)
-    sns.despine(ax=top_sub, bottom=True, left=True)
+                kwargs.update(transform=bottom.transAxes)  # switch to the bottom axes
+                bottom.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+                if i == 0:
+                    bottom.annotate('Most Fit Quartile\nof Segregants', fontsize=14, xy=(0.32, 0.9), xycoords="axes fraction", horizontalalignment="center")
+                    top.annotate(lets[c][1], fontsize=40, xy=(-0.2, 1.4), xycoords="axes fraction", horizontalalignment="center")
+                else:
+                    bottom.annotate('Least Fit Quartile\nof Segregants', fontsize=14, xy=(0.32, 0.9), xycoords="axes fraction", horizontalalignment="center")
+                    bottom.annotate('Fitness Effect', fontsize=20, xy=(0.5, -0.34), xycoords="axes fraction", horizontalalignment="center")
+                    
+                
+        
+        top_sub.annotate(lets[c][0], fontsize=40, xy=(-0.2, 1.2), xycoords="axes fraction", horizontalalignment="center")
+        stats_subs[0][0].annotate(lets[c][2], fontsize=40, xy=(-0.2, 1.1), xycoords="axes fraction", horizontalalignment="center")
+        
+        jnk = [stats_subs[y][x].tick_params(axis='both', which='major', labelsize=16) for x in range(2) for y in range(2)]
+        jnk = [sns.despine(ax=stats_subs[y][x]) for x in range(2) for y in range(2)]
+
+        sns.despine(ax=hm_sub, bottom=True)
+        sns.despine(ax=top_sub, bottom=True, left=True)
+        
     f.savefig(outname, background='transparent')
     pl.close('all')
-
+    
+    
 def make_correlation_plot(segs, td, xvar, yvar, xerr_var, yerr_var, xlabel, ylabel, criteria_one, criteria_two, output_name):
     nrows = int(np.ceil(len(segs)/4))
     fig, subps = pl.subplots(nrows, 4, figsize=(16, nrows*(16/5)), sharex=True, sharey=True)
@@ -397,14 +445,14 @@ def plot_20_determinants(df_rows, segs, output_name, plot_errors=False, show_tit
         
 def make_determinants_figure(outname, gm, plot_errors=False, plot_std_dev=True):
     
-    df = tp
+    df = tp.loc[tp['num.measured']>50].sort_values(by='var', ascending=False)
 
     f = pl.figure(figsize=(24, 28))
     pl.subplots_adjust(wspace=0.4)
-    gs0 = gridspec.GridSpec(10, 52)
+    gs0 = gridspec.GridSpec(20, 52)
 
-    top_sub = pl.subplot(gs0[:2,2:50])
-    gs01 = gridspec.GridSpecFromSubplotSpec(5, 3, subplot_spec=gs0[3:,2:45])
+    top_sub = pl.subplot(gs0[16:,2:50]) #moved to bottom, still called top sub sorry that's confusing
+    gs01 = gridspec.GridSpecFromSubplotSpec(5, 3, subplot_spec=gs0[:15,2:45])
     subps = [[pl.Subplot(f, gs01[i, j]) for j in range(3)] for i in range(5)]
     
     example_loc = len(df)+7
@@ -419,7 +467,7 @@ def make_determinants_figure(outname, gm, plot_errors=False, plot_std_dev=True):
         label.set_y(label.get_position()[1] + 0.025)
     top_sub.tick_params(axis='y', which='major', labelsize=14)
     top_sub.set_xlim([-1, len(gene_descrips)+16])
-    top_sub.set_ylim([0, 0.055])
+    top_sub.set_ylim([0, 0.065])
     ex_dev, ex_full, ex_qtl, ex_x = 0.05, 0.03, 0.022, 0.007
     top_sub.bar(xbars, list(np.sqrt(df['var'])) + [ex_dev], color='none', edgecolor='black', width=0.7)
     top_sub.bar(xbars, list(np.sqrt(df['full_sig_only_r2']*df['var'])) + [ex_full], color='#BBBBBB', width=0.7)
@@ -438,7 +486,10 @@ def make_determinants_figure(outname, gm, plot_errors=False, plot_std_dev=True):
     top_sub.annotate('$\sigma_s$\n(std dev of\nfitness effect)', xy=(example_loc-8, ex_dev), xycoords='data', fontsize=20, ha='center', va='center')
     top_sub.plot([example_loc-0.7, example_loc-3], [ex_dev, ex_dev], c='k')
     
-    examples = [
+    refs = [
+        'TATATTGAACTTTAC', 'TCAAAACGGAGTGTT', 'ACAACCTACCTGCTA', # references
+    ]
+    ex_edges = [
         'GTTTAGCTTCCGTTG',  #in RPL16A
         'TCAAAGCATGAAAAA',  #in SUM1
         'CTTTCTTGTGTATTT',  #in BRR1
@@ -450,20 +501,20 @@ def make_determinants_figure(outname, gm, plot_errors=False, plot_std_dev=True):
         'AGTGTTAATCAGACC',  #nearby PAH1
         'GAACTCAGGTTCCAT',  #in MME1
         'AGTGTATGATAATAT',  #nearby KRI1
-        'GTACAAGAAATTTTG',  #nearby PDE2
-        'TATATTGAACTTTAC', 'TCAAAACGGAGTGTT', 'ACAACCTACCTGCTA' # references
+        'GTACAAGAAATTTTG'  #nearby PDE2
     ]
+    examples = refs + sorted(ex_edges, key=lambda e: list(df['Edge']).index(e))
 
     c = 0
     for subarr in subps:
         for sub in subarr:
             edge = examples[c]
             c += 1
-            if c < 13:
-                top_sub.annotate(str(c), ((edges_in_order.index(edge)+0.6)/(len(gene_descrips)+17), -0.22), fontsize=10, xycoords='axes fraction', bbox={"boxstyle" : "circle", "color":"#BBBBBB"}, zorder=5)
-                sub.annotate(str(c),(-0.14,0.06), fontsize=12, xycoords='data', bbox={"boxstyle" : "circle", "color":"#BBBBBB"})
+            if c > 3:
+                top_sub.annotate(str(c-3), ((edges_in_order.index(edge)+0.6)/(len(gene_descrips)+17), -0.22), fontsize=10, xycoords='axes fraction', bbox={"boxstyle" : "circle", "color":"#BBBBBB"}, zorder=5)
+                sub.annotate(str(c-3),(-0.14,0.06), fontsize=12, xycoords='data', bbox={"boxstyle" : "circle", "color":"#BBBBBB"})
             df_row = tp_all.loc[tp_all['Edge']==edge].iloc[0]
-            make_single_determinant_plot(sub, df_row, segs, gm, True, True)
+            make_single_determinant_plot(sub, df_row, segs_all['TP'], gm, True, True)
             sub.set_xlim([-0.16, 0.12])
             sub.set_ylim([-0.2, 0.09])
             f.add_subplot(sub)
@@ -472,6 +523,9 @@ def make_determinants_figure(outname, gm, plot_errors=False, plot_std_dev=True):
     subps[3][1].annotate('Background Fitness', fontsize=25, xy=(0.5, -0.2), xycoords='axes fraction', ha='center', va='top')
     sns.despine()
     sns.despine(left=True, bottom=True, ax=top_sub)
+    
+    top_sub.annotate('B', fontsize=40, xy=(-0.05, 1.07), xycoords="axes fraction", horizontalalignment="center")
+    subps[0][0].annotate('A', fontsize=40, xy=(-0.2, 1.1), xycoords="axes fraction", horizontalalignment="center")
             
     f.savefig(outname, background='transparent')
 
@@ -503,7 +557,7 @@ for model in ['segregant', 'full', 'x', 'qtl', 'full_plus_seg']:
 
 
 # Make main determinant figure
-make_determinants_figure('../../Figures/Genetic_Determinants.png', gm, plot_errors=True)
+make_determinants_figure('../../Figures/Figure3.pdf', gm, plot_errors=True)
 
 ## Making correlation plots
 make_correlation_plot(segs_w_data_in_both_exps, bt, '.rep1.s', '.rep2.s', '.rep1.stderr.s', '.rep2.stderr.s', 'mean bc s rep 1', 'mean bc s rep 2',
@@ -557,8 +611,7 @@ exp = 'TP'
 dats[exp]['x_p_any_type'] = dats[exp].apply(lambda row: np.nanmax([row['x_model_p'], row['model_comp_p_full_vs_qtl']]), axis=1)
 dats[exp]['top_qtl_es'] = dats[exp]['full_model_qtl_effect_sizes'].apply(lambda es: float(str(es).split(';')[0]))
 
-make_dfe_plot('TP', '../../Figures/' + exps['TP'] + '_dfe_fig.png')
-make_dfe_plot('BT', '../../Figures/all/' + exps['BT'] + '_dfe_fig.png')
+make_dfe_plot_combined(['BT', 'TP'], '../../Figures/Figure2.pdf')
 
 ## Making effect size / genetic determinants plots
 make_jointplots(dats['TP'], ['avg_s', 'full_model_x_slope'], '../../Figures/all/X_slopes_fig.png', col_names=['Average Fitness Effect', 'Regression slope'], sig_column='x_p_any_type')
