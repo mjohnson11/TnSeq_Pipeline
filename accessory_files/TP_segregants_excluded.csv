@@ -3,7 +3,8 @@ LK1-A10,High Rate of Outliers
 LK1-E07,High Rate of Outliers
 LK1-H02,Drug resistance discrepancy in screen
 LK1-H09,Drug resistance discrepancy in screen
-LK2-F05,Low reference bc coverage
+LK2-F05,Insufficient reference/neutral barcodes
+LK3-E09,Insufficient reference/neutral barcodes
 LK2-G09,High Rate of Outliers
 LK3-A12,High Rate of Outliers
 LK3-C01,High Rate of Outliers

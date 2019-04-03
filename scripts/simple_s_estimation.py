@@ -117,7 +117,11 @@ def add_ll_column(td, tps, tp_names, s_col, ll_col_name, near_median_s_buffer=0.
 
 
 # Main running function
-def s_estimation(segs, rep_info, output_base, input_base, experiment, ll_cutoff, bc_target_num, neut_edges, neut_ref_read_cutoff=30, tp_read_count_cutoff=5000, assay_to_first_tp=None, bc_out_extra_cols=[], consider_all_edges_neutral=False):
+def s_estimation(segs, rep_info, output_base, input_base, experiment, ll_cutoff, bc_target_num, neut_edges, exclusion_file=None, neut_ref_read_cutoff=30, tp_read_count_cutoff=5000, assay_to_first_tp=None, bc_out_extra_cols=[], consider_all_edges_neutral=False):
+    if exclusion_file:
+        ex_out = open(exclusion_file, 'w')
+        ex_writer = csv.writer(ex_out)
+    
     for seg in segs:
         print('Working on', seg)
         make_dir(output_base + seg, seg)
@@ -158,8 +162,12 @@ def s_estimation(segs, rep_info, output_base, input_base, experiment, ll_cutoff,
                 d_edge['median.bc.s'], d_edge['mean.bc.s'], d_edge['num.cbcs'], d_edge['bc.stderr.s'] = d_edge['bc_stats'].str  # .str splits lists somehow...
                 d_edge[edge_out_cols + ['median.bc.s', 'mean.bc.s', 'num.cbcs', 'bc.stderr.s'] + tp_names].to_csv(output_base + seg + '/' + seg + '_rep' + str(rep_count) + '_edge_s.csv', index=False)
             elif len(neut_data) < 5:
+                if exclusion_file:
+                    ex_writer.writerow([seg, rep, 'Insufficient reference/neutral barcodes'])
                 print(seg, rep, 'excluded by neut data')
             else:
+                if exclusion_file:
+                    ex_writer.writerow([seg, rep, 'Low sequencing coverage'])
                 print(seg, rep, 'excluded by low read counts')
             rep_count += 1
 
@@ -208,6 +216,3 @@ def s_estimation(segs, rep_info, output_base, input_base, experiment, ll_cutoff,
                             tmp_row += [np.nan, np.nan, np.nan]
 
                     writer.writerow(tmp_row)
-                
-                
-                

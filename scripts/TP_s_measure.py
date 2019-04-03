@@ -27,4 +27,4 @@ rep_d = pd.read_csv(replicate_info_file)
 rep_info = {i[0]: i[1:] for i in rep_d.as_matrix(['segregant', 'Replicate_1', 'Replicate_2'])}
 segs = list(rep_d['segregant'])
 
-s_estimation([s for s in segs[demult_id_key*5:(demult_id_key+1)*5] if s not in excluded_segs], rep_info, output_base, input_base, experiment, ll_cutoff, bc_target_num, neut_edges, assay_to_first_tp=a_to_first_tp)
+s_estimation([s for s in segs[demult_id_key*5:(demult_id_key+1)*5] if s not in excluded_segs], rep_info, output_base, input_base, experiment, ll_cutoff, bc_target_num, neut_edges, exclusion_file='../../Analysis/TP_assay_exclusions.csv', assay_to_first_tp=a_to_first_tp)
