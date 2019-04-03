@@ -1,6 +1,6 @@
 import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
-from simple_s_estimation_v2 import s_estimation
+from simple_s_estimation import s_estimation
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('demult_id_key', help='key to identify which file to parse (which row of the demult file) - for jabba-rays (job arrays)')
