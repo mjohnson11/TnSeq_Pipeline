@@ -284,7 +284,7 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
 
 
 def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_segs):
-    measured = [seg for seg in segs if row['total.cbcs'] >= 3]
+    measured = [seg for seg in segs if row[seg + '.total.cbcs'] >= 3]
     reps = ['rep1', 'rep2']
     stat_dict = {'num.measured': len(measured)}
     if len(measured) > 0:
