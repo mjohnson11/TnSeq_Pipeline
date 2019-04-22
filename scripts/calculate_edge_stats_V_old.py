@@ -234,11 +234,14 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
     full_model_tmp = smf.ols(formula='s ~ ' + ' + '.join(['x'] + ['locus_' + markers[i] for i in dedup_qtl_info[0]]), data=df).fit()
     df['s_full_resids'] = full_model_tmp.resid
     models = {
+        'segregant': 's ~ segregant',
         'x': 's ~ x',
         'qtl': 's ~ ' + ' + '.join(['locus_' + markers[i] for i in qtl_info[0]]),
         'resid_qtl': 's_x_resids ~ ' + ' + '.join(['locus_' + markers[i] for i in qtl_resid_info[0]]),
         'resid_x': 's_qtl_resids ~ x',
         'full': 's ~ ' + ' + '.join(['x'] + ['locus_' + markers[i] for i in dedup_qtl_info[0]]),
+        'full_plus_seg': 's ~ ' + ' + '.join(['segregant', 'x'] + ['locus_' + markers[i] for i in dedup_qtl_info[0]]),
+        'full_resid_seg': 's_full_resids ~ segregant'
     }
     fits = dict()
     for model in models:
@@ -267,7 +270,7 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
     sd['full_model_qtl_effect_sizes'] = ';'.join([str(ef) for ef in qtl_effects])
 
     # model comparison using F test
-    model_comps = [('full', 'x'), ('full', 'qtl')]
+    model_comps = [('full', 'x'), ('full', 'qtl'), ('full_plus_seg', 'full')]
     for (m1, m2) in model_comps:
         if sd[m1 + '_model_p_values'] != 'NA' and sd[m2 + '_model_p_values'] != 'NA':
             f_jnk, sd['model_comp_p_' + m1 + '_vs_' + m2], df_diff_jnk = fits[m1].compare_f_test(fits[m2])
@@ -284,8 +287,13 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
 
 
 def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_segs):
-    measured = [seg for seg in segs if row['total.cbcs'] >= 3]
+    # The difference here is I am including replicate s measurements in the model instead of using the mean s
+    if use_only_two_rep_segs:  #only include segregants w s measured in both replicates
+        measured = [seg for seg in segs if row[seg + '.rep1.cbcs'] >= 2 and row[seg + '.rep2.cbcs'] >= 2]
+    else:
+        measured = [seg for seg in segs if row[seg + '.rep1.cbcs'] >= 2 or row[seg + '.rep2.cbcs'] >= 2]
     reps = ['rep1', 'rep2']
+    measured_by_rep = {r: [seg for seg in segs if row[seg + '.' + r + '.cbcs'] >= 2] for r in reps}
     stat_dict = {'num.measured': len(measured)}
     if len(measured) > 0:
         pvals = [row[seg + '.pval'] for seg in measured]
@@ -295,15 +303,29 @@ def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_se
         stat_dict['avg_s'] = np.nanmean([row[seg + '.mean.s'] for seg in measured])
     if len(measured) >= 10:
         means = [row[seg + '.mean.s'] for seg in measured]
-        stat_dict.update(analyze_determinants(measured, means, gm_df, num_subsamples))
+        variances = [row[seg + '.stderr.s']**2 for seg in measured]
+        Vg = np.var(means)
+        Ve = np.mean(variances)
+        stat_dict['H2'] = (Vg - Ve) / Vg
+        # doing n/2 sub-samplings to get error on that
+        sub_H2 = []
+        seg_indices = [i for i in range(len(measured))]
+        for b in range(num_subsamples):
+            segs_chosen = np.random.choice(seg_indices, size=int(np.floor(len(measured)/2)), replace=False)
+            Vg = np.var([means[seg_ind] for seg_ind in segs_chosen])
+            Ve = np.mean([variances[seg_ind] for seg_ind in segs_chosen])
+            sub_H2.append((Vg - Ve) / Vg)
+        stat_dict['H2_95_conf_low'] = np.percentile(sub_H2, 2.5)
+        stat_dict['H2_95_conf_high'] = np.percentile(sub_H2, 97.5)
+        rep_means = [row[seg + '.rep1.s'] for seg in measured_by_rep['rep1']] + [row[seg + '.rep2.s'] for seg in measured_by_rep['rep2']]
+        stat_dict.update(analyze_determinants(measured_by_rep['rep1']+measured_by_rep['rep2'], rep_means, gm_df, num_subsamples))
     return stat_dict
 
-
 def add_analysis(exp, df, output_name, num_subsamples, use_only_two_rep_segs=False):
-    full_cols = ['num.measured', 'num.sig',
+    full_cols = ['num.measured', 'num.sig', 'H2', 'H2_95_conf_low', 'H2_95_conf_high',
                  'model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'model_comp_p_full_plus_seg_vs_full', 'var',
                  'avg_s', 'x_slope', 'full_model_x_slope', 'full_model_x_effect_size_measure', 'full_model_qtl_effect_sizes']
-    mods = ['x', 'qtl', 'resid_qtl', 'resid_x', 'full']
+    mods = ['segregant', 'x', 'qtl', 'resid_qtl', 'resid_x', 'full', 'full_plus_seg', 'full_resid_seg']
     suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
     for c in mods:
         full_cols += [c + s for s in suffixes]
