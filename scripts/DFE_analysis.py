@@ -7,7 +7,7 @@ from statsmodels.stats.multitest import fdrcorrection as benjamini_hochberg
 from collections import defaultdict
 from calculate_edge_stats import analyze_determinants, get_genotype_dataframe
 
-NUM_SUBSAMPLES = 1000
+NUM_SUBSAMPLES = 1
 
 tp_all = pd.read_csv('../../Analysis/TP_data_by_edge.csv')
 tp = tp_all.loc[tp_all['Type']=='Experiment']
@@ -32,7 +32,7 @@ for exp in exps:
     segs = exp_segs[exp]
     d = dats[exp]
     for seg in segs:
-        measured = d.loc[d[seg + '.total.cbcs'] >= 4]
+        measured = d.loc[d[seg + '.total.cbcs'] >= 3]
         dfes[exp][seg] = list(measured[seg + '.mean.s'])
         pvals = list(measured[seg + '.pval'])
         sig = measured.loc[benjamini_hochberg(pvals)[0]] # B/H with alpha=0.05 by default
@@ -41,7 +41,7 @@ for exp in exps:
 for exp in exps:
     td = dfes[exp]
     td_sig = dfes_sig[exp]
-    segs = [s for s in td if len(td[s]) > 50]
+    segs = [s for s in td if len(td[s]) >= 50]
     tmp_dict = dict()
     for seg in segs:
         sub_means = [np.nanmean(np.random.choice(td[seg], size=int(len(td[seg])/2), replace=False)) for i in range(NUM_SUBSAMPLES)]
