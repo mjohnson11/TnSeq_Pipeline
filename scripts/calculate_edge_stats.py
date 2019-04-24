@@ -301,7 +301,7 @@ def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_se
 
 def add_analysis(exp, df, output_name, num_subsamples, use_only_two_rep_segs=False):
     full_cols = ['num.measured', 'num.sig',
-                 'model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'model_comp_p_full_plus_seg_vs_full', 'var',
+                 'model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'var',
                  'avg_s', 'x_slope', 'full_model_x_slope', 'full_model_x_effect_size_measure', 'full_model_qtl_effect_sizes']
     mods = ['x', 'qtl', 'resid_qtl', 'resid_x', 'full']
     suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
