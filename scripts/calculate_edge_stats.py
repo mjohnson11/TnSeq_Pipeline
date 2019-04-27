@@ -142,7 +142,7 @@ def detect_qtls(seg_names, genotype_mat_centered, phenotypes):
         permuted_rs = np.matmul(genotype_mat_centered.T, permutations.T)
         permuted_rvals = np.square(permuted_rs)
         bootstrapped_rvals = np.nanmax(permuted_rvals, axis=0)
-        sig_threshold = np.sort(bootstrapped_rvals)[int(-0.05 * NUM_PERMUTATIONS)]  # p < .05
+        sig_threshold = np.sort(bootstrapped_rvals)[int(-0.01 * NUM_PERMUTATIONS)]  # p < .01
         if top_rval > sig_threshold:
             QTLs.append(top_lod_idx)
             intervals.append([first_consecutive_low_idx, first_consecutive_high_idx])
