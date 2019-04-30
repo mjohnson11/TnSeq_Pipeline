@@ -50,19 +50,8 @@ chromo_lens = {
 }
 
 # Regions with at least 5 detected QTLs (for different edges)
-multi_hit_qtls = [('chr05', 360000, 400000), ('chr08', 60000, 140000), ('chr12', 640000, 720000), ('chr13', 40000, 80000), ('chr14', 360000, 420000), 
+multi_hit_qtls = [('chr04', 40000, 70000), ('chr05', 360000, 400000), ('chr08', 60000, 140000), ('chr12', 640000, 720000), ('chr13', 40000, 80000), ('chr14', 360000, 420000), 
                   ('chr14', 430000, 500000), ('chr15', 100000, 200000)]
-
-# My rough notes about them
-milo_notes = {
-    'qtl_chr08_60000_140000': 'Seems likely that there is some interaction here since we get both SIR proteins, but I cannot find any strong candidates.  Is (near) a YPD qtl in Bloom studies.',
-    'qtl_chr12_640000_720000': 'Fitness and adaptability qtl in jerison, found in bloom studies too. Cannot figure any strong candidates.',
-    'qtl_chr13_40000_80000': 'Near some qtls in Bloom stress environments, no idea what is going on though.  BUL2 (BUL1 paralog) is in the region...',
-    'qtl_chr05_360000_400000': 'This is near the Nat marker locus (FLO8), so it may be spurious, but it is possible it is something else.',
-    'qtl_chr15_100000_200000': 'Fitness QTL.  Based on Bloom YPD QTLs nearby it could be an IRA2 thing.  The strongest effects are on the ribosomal proteins, where the epistatic effects look like they do not fit with the pattern (mutations are better on the more fit allele background)',
-    'qtl_chr14_430000_500000': 'I think this is the MKT1 QTL, based on the confidences ranges on the Bloom QTLs.  This is a fitness QTL, but its epistatic effect on average does not follow the main pattern we see (mutations are better on the more fit allele background)',
-    'qtl_chr14_360000_420000': 'KRE33 QTL. Ribosome-associated. This is the major fitness QTL, and its epistatic effect on average does follow the pattern (mutations are better on the less fit allele background)',
-}
 
 def has_qtl(qtl_list, search_qtl):
     if str(qtl_list) != 'nan':
@@ -110,8 +99,8 @@ mhq_mat = []
 for mhq in multi_hit_qtls:
     mhq_mat.append(['qtl_' + '_'.join([str(i) for i in mhq]), 
                     ';'.join(list( tp.loc[tp['num.measured']>=50].loc[tp['full.model.qtls'].apply(lambda q: has_qtl(q, mhq))]['Gene.Use'].str.split(' ').str[1])),
-                    milo_notes['qtl_' + '_'.join([str(i) for i in mhq])], qgroup_median['qtl_' + '_'.join([str(i) for i in mhq])]])
-mhq_dat = pd.DataFrame(mhq_mat, columns=['QTL', 'Genes_with_interactions', 'notes', 'median.loc'])
+                    qgroup_median['qtl_' + '_'.join([str(i) for i in mhq])]])
+mhq_dat = pd.DataFrame(mhq_mat, columns=['QTL', 'Genes_with_interactions', 'median.loc'])
 
 jerison = pd.read_csv('../../QTL_info_old_papers/elife-27167-supp5-v2.csv') #from jerison et al. 2017
 bloom2013 = pd.read_excel('../../QTL_info_old_papers/nature11867-s4.xls') #from bloom et al. 2013
