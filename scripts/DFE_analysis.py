@@ -32,7 +32,7 @@ for exp in exps:
     segs = exp_segs[exp]
     d = dats[exp]
     for seg in segs:
-        measured = d.loc[d[seg + '.total.cbcs'] >= 3]
+        measured = d.loc[pd.notnull(d[seg + '.mean.s'])]
         dfes[exp][seg] = list(measured[seg + '.mean.s'])
         pvals = list(measured[seg + '.pval'])
         sig = measured.loc[benjamini_hochberg(pvals)[0]] # B/H with alpha=0.05 by default
