@@ -182,14 +182,20 @@ def s_estimation(segs, rep_info, output_base, input_base, experiment, ll_cutoff,
                         neut_bc_s[rep] += edge_to_bc_s[edge][rep]
             for edge in edge_to_bc_s:
                 tmp = edge_to_bc_s[edge]
-                usable_reps = [r for r in tmp if len(tmp[r]) >= 2 and len(neut_bc_s[r]) >= 2]  # only using the data if there are at least 2 cbcs for the replicate
+                usable_reps = [r for r in tmp if len(tmp[r]) > 0 and len(neut_bc_s[r]) >= 2]  # only using the data if there are at least 1 cbc for the replicate
                 if len(usable_reps) > 0:
                     num_cbcs = [len(tmp[r]) for r in usable_reps]
                     # I get the mean and standard error from inverse variance weighting
                     means = np.array([np.mean(tmp[r]) for r in usable_reps])
                     # What we really want for standard errors is the standard error of the difference between s for the edge and the neutral edges
                     # The standard error of a difference is the square root of the sum of the two errors
-                    std_errs = np.array([np.sqrt((np.std(tmp[r])/np.sqrt(len(tmp[r])))**2 + (np.std(neut_bc_s[r])/len(neut_bc_s[r]))**2) for r in usable_reps])
+                    std_errs = []
+                    for r in usable_reps:
+                        if len(tmp[r]) > 1:
+                            std_errs.append(np.sqrt((np.std(tmp[r])/np.sqrt(len(tmp[r])))**2 + (np.std(neut_bc_s[r])/len(neut_bc_s[r]))**2) )
+                        else: # if there is only one barcode, we use the standard deviation of neutral bc s as an estimate of the standard error
+                            std_errs.append( np.sqrt(np.std(neut_bc_s[r])**2 + (np.std(neut_bc_s[r])/len(neut_bc_s[r]))**2) )
+                    std_errs = np.array(std_errs)
                     # inverse variance averaging code modified from Venkataram et al. 2016 code
                     use_mean = np.sum(means*np.power(std_errs, -2))/np.sum(np.power(std_errs,-2))
                     use_std_err = np.power(np.sum(np.power(std_errs, -2)), -0.5)
