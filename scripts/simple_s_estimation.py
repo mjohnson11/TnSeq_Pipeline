@@ -184,21 +184,25 @@ def s_estimation(segs, rep_info, output_base, input_base, experiment, ll_cutoff,
                 tmp = edge_to_bc_s[edge]
                 usable_reps = [r for r in tmp if len(tmp[r]) >= 1 and len(neut_bc_s[r]) >= 2]  # must have at least 1 cbc for the replicate
                 num_cbcs = [len(tmp[r]) for r in usable_reps]
+                all_s = []
                 if len(usable_reps) > 0 and np.sum(num_cbcs) > 3: # must have at least 3 cbcs overall
                     # I get the mean and standard error from inverse variance weighting
                     means = np.array([np.mean(tmp[r]) for r in usable_reps])
+                    all_s += tmp[r]
                     # What we really want for standard errors is the standard error of the difference between s for the edge and the neutral edges
                     # The standard error of a difference is the square root of the sum of the two errors
-                    std_errs = []
+                    std_err_d = dict()
                     for r in usable_reps:
                         if len(tmp[r]) > 1:
-                            std_errs.append(np.sqrt((np.std(tmp[r])/np.sqrt(len(tmp[r])))**2 + (np.std(neut_bc_s[r])/len(neut_bc_s[r]))**2) )
-                        else: # if there is only one barcode, we use the standard deviation of neutral bc s as an estimate of the standard error
-                            std_errs.append( np.sqrt(np.std(neut_bc_s[r])**2 + (np.std(neut_bc_s[r])/len(neut_bc_s[r]))**2) )
-                    std_errs = np.array(std_errs)
+                            std_err_d[r] = np.sqrt((np.std(tmp[r], ddof=1)/np.sqrt(len(tmp[r])))**2 + (np.std(neut_bc_s[r], ddof=1)/np.sqrt(len(neut_bc_s[r])))**2)
+                        else: # if there is only one barcode, we use the standard deviation of bc s in the other replicate as an estimate of the standard error
+                            other_rep = [rep for rep in usable_reps if rep != r][0] # since we require 3 cbcs, the other rep must have at least 2
+                            std_err_d[r] = np.sqrt(np.std(tmp[other_rep], ddof=1)**2 + (np.std(neut_bc_s[r], ddof=1)/np.sqrt(len(neut_bc_s[r])))**2)
+                    std_errs = np.array([std_err_d[r] for r in usable_reps])
                     # inverse variance averaging code modified from Venkataram et al. 2016 code
                     use_mean = np.sum(means*np.power(std_errs, -2))/np.sum(np.power(std_errs,-2))
-                    use_std_err = np.power(np.sum(np.power(std_errs, -2)), -0.5)
+                    # standard error is based on deviations of each bc s from this mean
+                    use_std_err = np.sqrt(np.sum([(s - use_mean)**2 for s in all_s])/(len(all_s)-1))/np.sqrt(len(all_s))
                     # for significance testing, I fit by ordinary least squares and ask whether the mutation type (neutral vs. in-question) 
                     # has an effect replicate is included in the model
                     mat = []
@@ -217,7 +221,7 @@ def s_estimation(segs, rep_info, output_base, input_base, experiment, ll_cutoff,
                         tmp_row = [edge, use_mean, use_std_err, np.sum(num_cbcs), ps[0]]
                     for r in rep_info[seg]:
                         if r in usable_reps:
-                            tmp_row += [len(tmp[r]), np.mean(tmp[r]), np.sqrt(np.std(tmp[r])**2 + np.std(neut_bc_s[r])**2)]
+                            tmp_row += [len(tmp[r]), np.mean(tmp[r]), std_err_d[r]]
                         else:
                             tmp_row += [np.nan, np.nan, np.nan]
 
