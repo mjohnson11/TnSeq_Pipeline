@@ -16,3 +16,5 @@ source activate milo_simple_conda5
 python3 BT_BC_association_parse.py ../../raw_sequencing_data/BT_TP_BC_Assoc/ ../../BT_Bioinformatic_Work/TP_output/TP_BC_Assoc/TP_CS_BC_Assoc_ ../accessory_files/TP_CS_BC_Assoc_Demult.csv
 
 python3 BT_BC_association_cluster.py ../../BT_Bioinformatic_Work/TP_output/TP_BC_Assoc/TP_CS_BC_Assoc_counts.csv ../../BT_Bioinformatic_Work/TP_output/TP_BC_Assoc/TP_CS_BC_Assoc_unfiltered_clusters.csv ../../BT_Bioinformatic_Work/TP_output/TP_BC_Assoc/TP_CS_BC_Assoc_filtered_clusters.csv ../../BT_Bioinformatic_Work/TP_output/TP_BC_Assoc/TP_CS_BC_Assoc_excluded_bcs.txt -row_column_libraries
+
+sbatch --array=1-20 TP_BFA_parsing_jabbaray.sh

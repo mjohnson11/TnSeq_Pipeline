@@ -2,6 +2,8 @@
 
 # ../../raw_sequencing_data/ needs to exist, and the correct contents can be downloaded from XXX
 
+mkdir ../../shell_outputs/
+
 mkdir ../../BT_Bioinformatic_Work
 mkdir ../../BT_Bioinformatic_Work/GC_BFA_output
 mkdir ../../BT_Bioinformatic_Work/BT1_output
