@@ -102,9 +102,9 @@ for mhq in multi_hit_qtls:
                     qgroup_median['qtl_' + '_'.join([str(i) for i in mhq])]])
 mhq_dat = pd.DataFrame(mhq_mat, columns=['QTL', 'Genes_with_interactions', 'median.loc'])
 
-jerison = pd.read_csv('../accessory_files/QTL_info_old_papers/elife-27167-supp5-v2.csv') #from jerison et al. 2017
-bloom2013 = pd.read_excel('../accessory_files/QTL_info_old_papers/nature11867-s4.xls') #from bloom et al. 2013
-bloom2015_pre = pd.read_excel('../accessory_files/QTL_info_old_papers/ncomms9712-s4.xls') #from bloom et al. 2015
+jerison = pd.read_csv('../../QTL_info_old_papers/elife-27167-supp5-v2.csv') #from jerison et al. 2017
+bloom2013 = pd.read_excel('../../QTL_info_old_papers/nature11867-s4.xls') #from bloom et al. 2013
+bloom2015_pre = pd.read_excel('../../QTL_info_old_papers/ncomms9712-s4.xls') #from bloom et al. 2015
 good_cols = [i for i in bloom2015_pre if not str(list(bloom2015_pre[i])[0])=='nan']
 bloom2015 = pd.DataFrame(bloom2015_pre.as_matrix(good_cols)[1:], columns=[list(bloom2015_pre[i])[0] for i in good_cols])
 

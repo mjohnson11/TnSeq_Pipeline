@@ -78,10 +78,10 @@ for lib in [i for i in gcp if i in ['TP-'+j+'.Reads' for j in rs]]:
 
 gcp_renamer = {seg_to_reps[seg][0] + '.cells': seg + '_r1.cells' for seg in segs}
 gcp_renamer.update({seg_to_reps[seg][1] + '.cells': seg + '_r2.cells' for seg in segs})
-gcp_new.rename(index=str, columns=gcp_renamer)[['Library', 'Time'] + [s+'_r1.cells' for s in segs] + [s+'_r2.cells' for s in segs]].to_csv('../../GC_Analysis/GCP_cell_density_estimates.csv', index=False)
+gcp_new.rename(index=str, columns=gcp_renamer)[['Library', 'Time'] + [s+'_r1.cells' for s in segs] + [s+'_r2.cells' for s in segs]].to_csv('../../Analysis/GCP_cell_density_estimates.csv', index=False)
 
 gcf_renamer = {seg_to_reps[seg][1] + '.cells': seg + '_r2.cells' for seg in segs}
-gcf_new.rename(index=str, columns=gcf_renamer)[['Library', 'Time'] + [s+'_r2.cells' for s in segs]].to_csv('../../GC_Analysis/GCF_cell_density_estimates.csv', index=False)
+gcf_new.rename(index=str, columns=gcf_renamer)[['Library', 'Time'] + [s+'_r2.cells' for s in segs]].to_csv('../../Analysis/GCF_cell_density_estimates.csv', index=False)
 
 # Getting the exponential growth rate for each segregant in each assay (log(cell density) / time in hours)
 s_rec = dict()
@@ -162,7 +162,7 @@ for seg in dats:
     td['pr2_lag_s'] = np.nanmean(td[['pr2_lag_s_0_7', 'pr2_lag_s_24_31']], axis=1)
     td['p_lag_mean'] = np.nanmean(td[['pr1_lag_s', 'pr2_lag_s']], axis=1)
     
-    td[[i for i in td if i[0] != 's']].to_csv('GC_seg_s_files/GC_' + seg + '_counts_and_s.csv', index=False)
+    td[[i for i in td if i[0] != 's']].to_csv('../../S_Estimation/GC_seg_s_files/GC_' + seg + '_counts_and_s.csv', index=False)
     
 # Combining files together
 ann_info_file = '../../Mutation_Annotation/Edges_annotated.csv'
@@ -191,8 +191,8 @@ rep_measures = ['expo_s', 'lag_s', 'sat_s']
 names = ['plate exponential s', 'plate lag s', 'plate saturation s', 'flask exponential s', 'flask lag s', 'flask saturation s']
 cols = measures + ['pr1_' + c for c in rep_measures] + ['pr2_' + c for c in rep_measures]
 for s in segs:
-    ed = {i[0]: i[1:] for i in pd.read_csv('../../GC_Analysis/GC_seg_s_files/GC_' + s + '_counts_and_s.csv').as_matrix(['Edge'] + cols)}
+    ed = {i[0]: i[1:] for i in pd.read_csv('../../S_Estimation/GC_seg_s_files/GC_seg_s_files/GC_' + s + '_counts_and_s.csv').as_matrix(['Edge'] + cols)}
     for c in range(len(cols)):
         edge_dat[s + '.' + cols[c]] = edge_dat['Edge'].apply(lambda e: ed.setdefault(e, [np.nan for i in range(len(cols))])[c])
 
-edge_dat.to_csv('../../GC_Analysis/GC_data_by_edge.csv', index=False)
+edge_dat.to_csv('../../Analysis/GC_data_by_edge.csv', index=False)
