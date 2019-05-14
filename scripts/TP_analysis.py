@@ -3,17 +3,8 @@ pd.options.mode.chained_assignment = None  # default='warn'
 from glob import glob
 import numpy as np
 from calculate_edge_stats import add_analysis
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('num_subsamples', help='number of subsamplings to get confidence intervals on r^2')
-parser.add_argument('output_file', help='output_file')
-parser.add_argument('-only_use_two_seg_reps', action='store_true')
-args = parser.parse_args()
 
-NUM_SUBSAMPLES = int(args.num_subsamples)
-output_file = args.output_file
-only_use_two_seg_reps = args.only_use_two_seg_reps
-
+NUM_SUBSAMPLES = 1000
 
 edge_info_file = '../accessory_files/Tn96_edges_chosen_final.csv'
 ann_info_file = '../../Mutation_Annotation/Edges_annotated.csv'
@@ -53,4 +44,4 @@ for s in TP_segs:
         edge_dat[s + '.' + cols[c]] = edge_dat['Edge'].apply(lambda e: ed.setdefault(e, [np.nan for i in range(len(cols))])[c])
 
 # ADDING GENETIC DETERMINANT ANALYSIS
-add_analysis('TP', edge_dat, output_file, NUM_SUBSAMPLES, use_only_two_rep_segs=only_use_two_seg_reps)
+add_analysis('TP', edge_dat, '../../Analysis/TP_data_by_edge.csv', NUM_SUBSAMPLES)

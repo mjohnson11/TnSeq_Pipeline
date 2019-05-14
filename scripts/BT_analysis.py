@@ -4,7 +4,7 @@ from glob import glob
 import numpy as np
 from calculate_edge_stats import add_analysis
 
-NUM_SUBSAMPLES = 1
+NUM_SUBSAMPLES = 1 # no subsampling for confidence intervals r^2 of each model, bc tehre are many mutations and few segregants
 
 ann_info_file = '../../Mutation_Annotation/Edges_annotated.csv'
 

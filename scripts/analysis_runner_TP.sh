@@ -5,12 +5,12 @@
 #SBATCH -t 0-02:00              # Runtime in D-HH:MM
 #SBATCH -p serial_requeue       # Partition to submit to
 #SBATCH --mem=3500               # Memory pool for all cores (see also --mem-per-cpu)
-#SBATCH -o ../../shell_outputs/TPanalysis.out      # File to which STDOUT will be written
-#SBATCH -e ../../shell_outputs/TPanalysis.err      # File to which STDERR will be written
+#SBATCH -o ../../shell_outputs/TP_analysis.out      # File to which STDOUT will be written
+#SBATCH -e ../../shell_outputs/TP_analysis.err      # File to which STDERR will be written
 #SBATCH --mail-type=ALL              # Type of email notification- BEGIN,END,FAIL,ALL
 #SBATCH --mail-user=milo.s.johnson.13@gmail.com  # Email to which notifications will be sent
 
 module load Anaconda3/5.0.1-fasrc01
 source activate milo_simple_conda5
 
-python TP_analysis.py 1 ../../Analysis/TP_data_by_edge.csv
+python TP_analysis.py

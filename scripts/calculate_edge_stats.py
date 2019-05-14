@@ -283,7 +283,7 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
     return sd
 
 
-def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_segs):
+def get_stats_for_one_edge(row, segs, gm_df, num_subsamples):
     measured = [seg for seg in segs if pd.notnull(row[seg + '.mean.s'])]  # must have at least 2 cbcs in at least one replicate
     reps = ['rep1', 'rep2']
     stat_dict = {'num.measured': len(measured)}
@@ -299,18 +299,21 @@ def get_stats_for_one_edge(row, segs, gm_df, num_subsamples, use_only_two_rep_se
     return stat_dict
 
 
-def add_analysis(exp, df, output_name, num_subsamples, use_only_two_rep_segs=False):
+def add_analysis(exp, df, output_name, num_subsamples):
     full_cols = ['num.measured', 'num.sig',
                  'model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'var',
                  'avg_s', 'x_slope', 'full_model_x_slope', 'full_model_x_effect_size_measure', 'full_model_qtl_effect_sizes']
     mods = ['x', 'qtl', 'resid_qtl', 'resid_x', 'full']
-    suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
+    if num_subsamples > 1: # don't report 95% intervals if we're not actually subsampling (which is the case for BT / E1)
+        suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
+    else:
+        suffixes = ['_model_r2', '_model_p', '_model_p_values', '_model_params', '_model_coeffs']
     for c in mods:
         full_cols += [c + s for s in suffixes]
     qtl_cols = ['qtls', 'resid.qtls', 'full.model.qtls']
     exp_segs = [i.split('.')[0] for i in df if '.mean.s' in i]
     geno_df = get_genotype_dataframe(exp_segs)
-    edge_stats = {r['Edge']: get_stats_for_one_edge(r, exp_segs, geno_df, num_subsamples, use_only_two_rep_segs) for index, r in df.iterrows()}
+    edge_stats = {r['Edge']: get_stats_for_one_edge(r, exp_segs, geno_df, num_subsamples) for index, r in df.iterrows()}
     for col in full_cols:
         df[col] = df['Edge'].apply(lambda edge: edge_stats[edge].setdefault(col, np.nan))
     for col in qtl_cols:

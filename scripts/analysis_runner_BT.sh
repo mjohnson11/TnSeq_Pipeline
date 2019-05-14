@@ -5,8 +5,8 @@
 #SBATCH -t 0-02:00              # Runtime in D-HH:MM
 #SBATCH -p serial_requeue       # Partition to submit to
 #SBATCH --mem=3500               # Memory pool for all cores (see also --mem-per-cpu)
-#SBATCH -o ../../shell_outputs/BTanalysis.out      # File to which STDOUT will be written
-#SBATCH -e ../../shell_outputs/BTanalysis.err      # File to which STDERR will be written
+#SBATCH -o ../../shell_outputs/BT_analysis.out      # File to which STDOUT will be written
+#SBATCH -e ../../shell_outputs/BT_analysis.err      # File to which STDERR will be written
 #SBATCH --mail-type=ALL              # Type of email notification- BEGIN,END,FAIL,ALL
 #SBATCH --mail-user=milo.s.johnson.13@gmail.com  # Email to which notifications will be sent
 
