@@ -12,6 +12,7 @@
 
 module load Anaconda3/5.0.1-fasrc01
 source activate milo_simple_conda5
+module load bowtie2
 python annotate.py
 rm tmp.fasta
 rm tmp_bowtie_output.tsv

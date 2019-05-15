@@ -48,3 +48,10 @@ sbatch analysis_runner_TP.sh
 sbatch analysis_runner_BT.sh
 sbatch DFE_analysis_runner.sh
 sbatch run_QTL_GO_analysis.sh
+
+### GC experiment calls
+sbatch --array=1-20 GC_BFA_parsing_jabbaray.sh
+sbatch --array=1-2 GC_BFA_clustering_jabbaray.sh
+sbatch run_s_measure_GC.sh
+
+### Plotting figures and making tables is all done in the jupyter notebook TNSEQ_PLOTTING.ipynb

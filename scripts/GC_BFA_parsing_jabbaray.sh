@@ -13,4 +13,4 @@
 module load Anaconda3/5.0.1-fasrc01
 source activate milo_simple_conda5
 
-python BT_parse.py ../accessory_files/GC_Exp_Demult.csv ../../BT_Bioinformatic_Work/GC_BFA_output/ ../raw_sequencing_data/GC_BFA/ "${SLURM_ARRAY_TASK_ID}" GC_BFA
+python BT_parse.py ../accessory_files/GC_Exp_Demult.csv ../../BT_Bioinformatic_Work/GC_BFA_output/ ../../raw_sequencing_data/GC_BFA/ "${SLURM_ARRAY_TASK_ID}" GC_BFA

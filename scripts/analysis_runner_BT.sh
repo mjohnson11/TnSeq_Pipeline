@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J BTanalysis  #job name for array
+#SBATCH -J BT_analysis  #job name for array
 #SBATCH -n 1                    # Number of cores
 #SBATCH -N 1                    # Ensure that all cores are on one machine
 #SBATCH -t 0-02:00              # Runtime in D-HH:MM
