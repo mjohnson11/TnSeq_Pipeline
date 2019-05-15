@@ -191,7 +191,7 @@ rep_measures = ['expo_s', 'lag_s', 'sat_s']
 names = ['plate exponential s', 'plate lag s', 'plate saturation s', 'flask exponential s', 'flask lag s', 'flask saturation s']
 cols = measures + ['pr1_' + c for c in rep_measures] + ['pr2_' + c for c in rep_measures]
 for s in segs:
-    ed = {i[0]: i[1:] for i in pd.read_csv('../../S_Estimation/GC_seg_s_files/GC_seg_s_files/GC_' + s + '_counts_and_s.csv').as_matrix(['Edge'] + cols)}
+    ed = {i[0]: i[1:] for i in pd.read_csv('../../S_Estimation/GC_seg_s_files/GC_' + s + '_counts_and_s.csv').as_matrix(['Edge'] + cols)}
     for c in range(len(cols)):
         edge_dat[s + '.' + cols[c]] = edge_dat['Edge'].apply(lambda e: ed.setdefault(e, [np.nan for i in range(len(cols))])[c])
 
