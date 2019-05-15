@@ -28,6 +28,29 @@ def get_geno_matrix(seg_names):
     assert len([s for s in seg_names if s in d.columns]) == len(seg_names)
     return d[['marker'] + seg_names]
 
+def compile_qtls(df, identifier_columns, output_file):
+    rows = []
+    for entry in df.as_matrix(['full.model.qtls', 'full_model_coeffs', 'full_model_qtl_effect_sizes'] + identifier_columns):
+        es = str(entry[2]).split(';')
+        coeffs = str(entry[1]).split(';')[2:]
+        qtl_list = entry[0]
+        if str(qtl_list) != 'nan':
+            c = 0
+            for qtl in str(qtl_list).split('|'):
+                hit, left, right = qtl.split(';')
+                chromo = hit[:5]
+                qtl_group = ''
+                for search_qtl in multi_hit_qtls:
+                    if chromo == search_qtl[0]:
+                        hit_loc = int(hit.split('_')[1])
+                        if hit_loc > search_qtl[1] and hit_loc < search_qtl[2]:
+                            qtl_group = 'qtl_' + '_'.join([str(i) for i in search_qtl])
+                rows.append([hit, left, right, float(coeffs[c]), float(es[c])] + list(entry[3:]) + [qtl_group])
+                c += 1
+    qtl_df = pd.DataFrame(rows, columns=['QTL', 'start_conf_interval', 'end_conf_interval', 'coeff', 'effect_size', 'Edge', 'Gene.Use', 'QTL_group'])
+    qtl_df.to_csv(output_file, index=False)
+    return qtl_df
+
 # Doing QTL and GO term analysis for the TP (Many strains, few mutations) experiment:
 
 chromo_lens = {
@@ -49,7 +72,7 @@ chromo_lens = {
     'chr16': 948066,
 }
 
-# Regions with at least 5 detected QTLs (for different edges)
+# Regions with at least 5 detected QTLs (for different edges) in TP
 multi_hit_qtls = [('chr04', 40000, 70000), ('chr05', 360000, 400000), ('chr08', 60000, 140000), ('chr12', 640000, 720000), ('chr13', 40000, 80000), ('chr14', 360000, 420000), 
                   ('chr14', 430000, 500000), ('chr15', 100000, 200000)]
 
@@ -66,32 +89,22 @@ def has_qtl(qtl_list, search_qtl):
 
 tp_all = pd.read_csv('../../Analysis/TP_data_by_edge.csv')
 tp = tp_all.loc[tp_all['Type']=='Experiment']
+bt = pd.read_csv('../../Analysis/BT_data_by_edge.csv')
+bt['Long.Edge'] = bt['Edge']
+bt['Edge'] = bt['Long.Edge'].str[:15]
 tp_dfe = pd.read_csv('../../Analysis/TP_DFE_statistics.csv')
+bt_dfe = pd.read_csv('../../Analysis/BT_DFE_statistics.csv')
 segs = [i.split('.')[0] for i in tp if '.mean.s' in i]
 gm = get_geno_matrix(segs)
 
-rows = []
-for entry in tp.as_matrix(['full.model.qtls', 'full_model_coeffs', 'full_model_qtl_effect_sizes', 'Edge', 'Gene.Use']):
-    es = str(entry[2]).split(';')
-    coeffs = str(entry[1]).split(';')[2:]
-    qtl_list = entry[0]
-    if str(qtl_list) != 'nan':
-        c = 0
-        for qtl in str(qtl_list).split('|'):
-            hit, left, right = qtl.split(';')
-            chromo = hit[:5]
-            qtl_group = ''
-            for search_qtl in multi_hit_qtls:
-                if chromo == search_qtl[0]:
-                    hit_loc = int(hit.split('_')[1])
-                    if hit_loc > search_qtl[1] and hit_loc < search_qtl[2]:
-                        qtl_group = 'qtl_' + '_'.join([str(i) for i in search_qtl])
-            rows.append([hit, left, right, float(coeffs[c]), float(es[c])] + list(entry[3:]) + [qtl_group])
-            c += 1
-qtl_df = pd.DataFrame(rows, columns=['QTL', 'start_conf_interval', 'end_conf_interval', 'coeff', 'effect_size', 'Edge', 'Gene.Use', 'QTL_group'])
-qtl_df.to_csv('../../Analysis/QTL_results.csv', index=False)
+tp_qtls = compile_qtls(tp, ['Edge', 'Gene.Use'], '../../Analysis/TP_QTL_results.csv')
+# The primary analysis just focuses on QTLs from TP (E2), but I am also recording QTLs for DFE statistics and the BT experiment (E1)
+tp_dfe_qtls = compile_qtls(tp_dfe, ['DFE.statistic'], '../../Analysis/TP_DFE_QTL_results.csv')
+bt_qtls = compile_qtls(bt, ['Edge', 'Gene.Use'], '../../Analysis/BT_QTL_results.csv')
+bt_dfe_qtls = compile_qtls(bt_dfe, ['DFE.statistic'], '../../Analysis/BT_DFE_QTL_results.csv')
 
-# just focusing on the multi-hit QTLs now:
+# just focusing on the multi-hit QTLs for TP now:
+qtl_df = tp_qtls
 qgroups = [i for i in set(qtl_df['QTL_group']) if str(i) != 'nan']
 qgroup_median = {g: np.median([int(i.split('_')[1]) for i in qtl_df.loc[qtl_df['QTL_group']==g]['QTL']]) for g in qgroups}
 
@@ -195,4 +208,3 @@ with open('../../Analysis/GO_results.csv', 'w') as outfile:
         for i in range(len(results[r])):
               writer.writerow([r, results[r][i].name, results[r][i].p_uncorrected, results[r][i].p_fdr_bh,
                               ';'.join([id_2_genename[i] for i in results[r][i].study_items])])
-  
