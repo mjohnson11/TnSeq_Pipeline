@@ -71,7 +71,7 @@ for exp in exps:
         }
     rows = [[c] + [tmp_dict[s][c] for s in segs] for c in dfe_cols]
     df = pd.DataFrame(rows, columns=['DFE.statistic'] + segs)
-    full_cols = ['var']
+    full_cols = ['model_comp_p_full_vs_qtl', 'model_comp_p_full_vs_x', 'var', 'x_slope', 'full_model_x_slope', 'full_model_x_effect_size_measure', 'full_model_qtl_effect_sizes']
     mods = ['segregant', 'x', 'qtl', 'resid_qtl', 'resid_x', 'full', 'full_plus_seg', 'full_resid_seg']
     suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
     for c in mods:
