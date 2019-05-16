@@ -3,7 +3,7 @@ import seaborn as sns
 from glob import glob
 import numpy as np
 from matplotlib.collections import LineCollection
-matplotlib.use('Agg'
+matplotlib.use('Agg')
 
 exps = ['TP', 'BT']
 reps = ['rep1', 'rep2']
