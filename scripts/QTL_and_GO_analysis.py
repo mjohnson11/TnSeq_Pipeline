@@ -30,7 +30,6 @@ def get_geno_matrix(seg_names):
 
 def compile_qtls(df, identifier_columns, output_file):
     rows = []
-    print(output_file, identifier_columns, [i for i in identifier_columns if i in df])
     for entry in df.as_matrix(['full.model.qtls', 'full_model_coeffs', 'full_model_qtl_effect_sizes'] + identifier_columns):
         es = str(entry[2]).split(';')
         coeffs = str(entry[1]).split(';')[2:]
@@ -48,7 +47,7 @@ def compile_qtls(df, identifier_columns, output_file):
                             qtl_group = 'qtl_' + '_'.join([str(i) for i in search_qtl])
                 rows.append([hit, left, right, float(coeffs[c]), float(es[c])] + list(entry[3:]) + [qtl_group])
                 c += 1
-    qtl_df = pd.DataFrame(rows, columns=['QTL', 'start_conf_interval', 'end_conf_interval', 'coeff', 'effect_size', 'Edge', 'Gene.Use', 'QTL_group'])
+    qtl_df = pd.DataFrame(rows, columns=['QTL', 'start_conf_interval', 'end_conf_interval', 'coeff', 'effect_size'] + identifier_columns + ['QTL_group'])
     qtl_df.to_csv(output_file, index=False)
     return qtl_df
 
