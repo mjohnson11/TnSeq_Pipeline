@@ -99,9 +99,9 @@ gm = get_geno_matrix(segs)
 
 tp_qtls = compile_qtls(tp, ['Edge', 'Gene.Use'], '../../Analysis/TP_QTL_results.csv')
 # The primary analysis just focuses on QTLs from TP (E2), but I am also recording QTLs for DFE statistics and the BT experiment (E1)
-tp_dfe_qtls = compile_qtls(tp_dfe, ['DFE.statistic'], '../../Analysis/TP_DFE_QTL_results.csv')
+#tp_dfe_qtls = compile_qtls(tp_dfe, ['DFE.statistic'], '../../Analysis/TP_DFE_QTL_results.csv')
 bt_qtls = compile_qtls(bt, ['Edge', 'Gene.Use'], '../../Analysis/BT_QTL_results.csv')
-bt_dfe_qtls = compile_qtls(bt_dfe, ['DFE.statistic'], '../../Analysis/BT_DFE_QTL_results.csv')
+#bt_dfe_qtls = compile_qtls(bt_dfe, ['DFE.statistic'], '../../Analysis/BT_DFE_QTL_results.csv')
 
 # just focusing on the multi-hit QTLs for TP now:
 qtl_df = tp_qtls
