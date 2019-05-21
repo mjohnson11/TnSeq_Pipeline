@@ -45,6 +45,7 @@ def compile_qtls(df, identifier_columns, output_file):
                         hit_loc = int(hit.split('_')[1])
                         if hit_loc > search_qtl[1] and hit_loc < search_qtl[2]:
                             qtl_group = 'qtl_' + '_'.join([str(i) for i in search_qtl])
+                print(coeffs, es, entry)
                 rows.append([hit, left, right, float(coeffs[c]), float(es[c])] + list(entry[3:]) + [qtl_group])
                 c += 1
     qtl_df = pd.DataFrame(rows, columns=['QTL', 'start_conf_interval', 'end_conf_interval', 'coeff', 'effect_size'] + identifier_columns + ['QTL_group'])
