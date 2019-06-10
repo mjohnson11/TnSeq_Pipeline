@@ -86,7 +86,7 @@ gcf_new.rename(index=str, columns=gcf_renamer)[['Library', 'Time'] + [s+'_r2.cel
 # Getting the exponential growth rate for each segregant in each assay (log(cell density) / time in hours)
 s_rec = dict()
 times = [4, 7, 10, 13]
-with open('GC_seg_growth_rates.csv', 'w') as outfile:
+with open('../../Analysis/GC_seg_growth_rates.csv', 'w') as outfile:
     writer = csv.writer(outfile)
     writer.writerow(['segregant', 'plate_expo_rate_r1', 'plate_expo_rate_r2', 'flask_expo_rate'])
     for seg in segs:
