@@ -203,22 +203,16 @@ def s_estimation(segs, rep_info, output_base, input_base, experiment, ll_cutoff,
                     use_mean = np.sum(means*np.power(std_errs, -2))/np.sum(np.power(std_errs,-2))
                     # standard error is based on deviations of each bc s from this mean
                     use_std_err = np.sqrt(np.sum([(s - use_mean)**2 for s in all_s])/(len(all_s)-1))/np.sqrt(len(all_s))
-                    # for significance testing, I fit by ordinary least squares and ask whether the mutation type (neutral vs. in-question) 
-                    # has an effect replicate is included in the model
+                    # for significance testing, I fit the cbc s data by ordinary least squares with replicate as a fixed effect predictor
+                    # and ask whether the fitness effect is different from zero (for each mutation)
                     mat = []
                     for rep in usable_reps:
-                        if experiment == 'TP':
-                            for val in neut_bc_s[rep]:
-                                mat.append(['REF', rep, val])
                         for val in tmp[rep]:
-                            mat.append(['EXP', rep, val]) 
-                    td = pd.DataFrame(mat, columns=['mutation', 'replicate', 's'])
-                    if experiment == 'TP': # for TP, we ask whether the neutral edge s vals and the edge in question s vals are different
-                        ps = list(ols('s ~ mutation + replicate', data=td).fit().pvalues)
-                        tmp_row = [edge, use_mean, use_std_err, np.sum(num_cbcs), ps[1]]
-                    else: # for BT, we just assume our zero is good and test if the intercept is significant (a t-test if there is only one replicate)
-                        ps = list(ols('s ~ replicate', data=td).fit().pvalues)
-                        tmp_row = [edge, use_mean, use_std_err, np.sum(num_cbcs), ps[0]]
+                            mat.append([rep, val]) 
+                    td = pd.DataFrame(mat, columns=['replicate', 's'])
+                    # sig testing
+                    ps = list(ols('s ~ replicate', data=td).fit().pvalues)
+                    tmp_row = [edge, use_mean, use_std_err, np.sum(num_cbcs), ps[0]] # first p val is for teh intercept - is the mutation's effect non-zero
                     for r in rep_info[seg]:
                         if r in usable_reps:
                             tmp_row += [len(tmp[r]), np.mean(tmp[r]), std_err_d[r]]

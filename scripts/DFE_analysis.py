@@ -7,7 +7,7 @@ from statsmodels.stats.multitest import fdrcorrection as benjamini_hochberg
 from collections import defaultdict
 from calculate_edge_stats import analyze_determinants, get_genotype_dataframe
 
-NUM_SUBSAMPLES = 10000
+NUM_SUBSAMPLES = 1000
 
 tp_all = pd.read_csv('../../Analysis/TP_data_by_edge.csv')
 tp = tp_all.loc[tp_all['Type']=='Experiment']
