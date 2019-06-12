@@ -91,9 +91,9 @@ with open('../../Analysis/GC_seg_growth_rates.csv', 'w') as outfile:
     writer.writerow(['segregant', 'plate_expo_rate_r1', 'plate_expo_rate_r2', 'flask_expo_rate'])
     for seg in segs:
         r1, r2 = seg_to_reps[seg]
-        lr = sci_stats.linregress(times, [np.log(list(gcp_new.loc[gcp_new['Time']==t][r1+'.cells'])[0]) for t in times])
-        lr2 = sci_stats.linregress(times, [np.log(list(gcp_new.loc[gcp_new['Time']==t][r2+'.cells'])[0]) for t in times])
-        lrf = sci_stats.linregress(times, [np.log(list(gcf_new.loc[gcf_new['Time']==t][r2+'.cells'])[0]) for t in times])
+        lr = sci_stats.linregress(times, [np.log2(list(gcp_new.loc[gcp_new['Time']==t][r1+'.cells'])[0]) for t in times])
+        lr2 = sci_stats.linregress(times, [np.log2(list(gcp_new.loc[gcp_new['Time']==t][r2+'.cells'])[0]) for t in times])
+        lrf = sci_stats.linregress(times, [np.log2(list(gcf_new.loc[gcf_new['Time']==t][r2+'.cells'])[0]) for t in times])
         s_rec[seg] = {'Pexpo1': lr[0], 'Pexpo2': lr2[0], 'Fexpo': lrf[0]}
         writer.writerow([seg, lr[0], lr2[0], lrf[0]])
         
