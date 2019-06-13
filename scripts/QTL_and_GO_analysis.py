@@ -207,5 +207,6 @@ with open('../../Analysis/GO_results.csv', 'w') as outfile:
     writer.writerow(['Group', 'GO term', 'pval_uncorrected', 'pval_benjamini_hochberg', 'hits'])
     for r in results:
         for i in range(len(results[r])):
-              writer.writerow([r, results[r][i].name, results[r][i].p_uncorrected, results[r][i].p_fdr_bh,
-                              ';'.join([id_2_genename[i] for i in results[r][i].study_items])])
+            if results[r][i].p_uncorrected < 0.01:
+                writer.writerow([r, results[r][i].name, results[r][i].p_uncorrected, results[r][i].p_fdr_bh,
+                                ';'.join([id_2_genename[i] for i in results[r][i].study_items])])
