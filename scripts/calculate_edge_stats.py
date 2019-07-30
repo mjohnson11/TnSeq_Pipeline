@@ -248,6 +248,7 @@ def analyze_determinants(seg_list, phenos, gm_df, num_subsamples):
         else:
             fits[model], sd[model + '_model_r2_95_conf_low'], sd[model + '_model_r2_95_conf_high'] = fit_and_subsample(models[model], df, num_subsamples)
             sd[model + '_model_p'] = fits[model].f_pvalue
+            sd[model + '_model_aic'] = fits[model].aic
             sd[model + '_model_r2'] = fits[model].rsquared
             sd[model + '_model_p_values'] = ';'.join([str(i) for i in fits[model].pvalues])
             sd[model + '_model_params'] = models[model][models[model].index('~')+2:].replace(' + ', ';')
@@ -305,9 +306,9 @@ def add_analysis(exp, df, output_name, num_subsamples):
                  'avg_s', 'x_slope', 'full_model_x_slope', 'full_model_x_effect_size_measure', 'full_model_qtl_effect_sizes']
     mods = ['x', 'qtl', 'resid_qtl', 'resid_x', 'full']
     if num_subsamples > 1: # don't report 95% intervals if we're not actually subsampling (which is the case for BT / E1)
-        suffixes = ['_model_r2', '_model_p', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
+        suffixes = ['_model_r2', '_model_p', '_model_aic', '_model_r2_95_conf_low', '_model_r2_95_conf_high', '_model_p_values', '_model_params', '_model_coeffs']
     else:
-        suffixes = ['_model_r2', '_model_p', '_model_p_values', '_model_params', '_model_coeffs']
+        suffixes = ['_model_r2', '_model_p', '_model_aic', '_model_p_values', '_model_params', '_model_coeffs']
     for c in mods:
         full_cols += [c + s for s in suffixes]
     qtl_cols = ['qtls', 'resid.qtls', 'full.model.qtls']
