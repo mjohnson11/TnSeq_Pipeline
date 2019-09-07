@@ -1,0 +1,28 @@
+May 14, 2019 SK
+
+I took files
+
+analyze_milos_s_data_02.m
+get_llh_mut_simple_ms.m
+fit_data_norm_ms.m
+
+from the archived folder SKLAB 2016-18 ARCHIVED/Projects ARCHIVED/TnSeq ARCHIVED/code/matlab/
+
+I modified these files as follows:
+
+1. Commented the code
+2. Streamlined and simplified the code
+3. Most importantly, I simplified the calculation of the likelihood function taking into account the fact that there is only one replicate measurement per barcode and only one environment. This makes many quantities scalars rather than matrices.
+4. I decreased RelTol down to 10^-5
+5. At the final stage when estimating the final selection coeffcients of mutations and P-values, I start tha likelihood maximiazation from five starting points.
+6. I plot the estaimtes in a different format than before
+7. I generate the csv file with p-values automatically
+
+The old data can be found in file
+
+sk_data.mat
+sk_data.xlsx
+
+in the folder old_versions.
+
+After these changes, the parameter estimates differ slightly from the old estimates. However, P-values and selection coefficient estimates are highly correlated (see figures folder). And Milo confirms that the selection of mutations using this updated code would be virtually identical to the old code (see email from today, 8:55 AM).
