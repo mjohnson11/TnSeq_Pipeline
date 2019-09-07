@@ -54,4 +54,4 @@ sbatch --array=1-20 GC_BFA_parsing_jabbaray.sh
 sbatch --array=1-2 GC_BFA_clustering_jabbaray.sh
 sbatch run_s_measure_GC.sh
 
-### Plotting figures and making tables is all done in the jupyter notebook TNSEQ_PLOTTING.ipynb
+### Plotting figures and making tables is all done in the jupyter notebooks TNSEQ_PLOTTING.ipynb and GC_plotting.ipynb
